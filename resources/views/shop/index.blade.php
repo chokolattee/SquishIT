@@ -17,7 +17,7 @@
     .card-img-top {
         width: 100%;
         height: 200px;
-        object-fit: cover;
+        object-fit: contain;
     }
 </style>
 
@@ -65,12 +65,12 @@
                 <img src="{{ Storage::url($images[$item->item_id][0]->image_path) }}"
                     class="card-img-top"
                     alt="{{ $item->item_name }}"
-                    style="width: 100%; height: 250px; object-fit: cover;">
+                    style="width: 100%; height: 250px; object-fit: contain;">
                 @else
                 <img src="https://via.placeholder.com/400x250?text=No+Image"
                     class="card-img-top"
                     alt="No image"
-                    style="width: 100%; height: 250px; object-fit: cover;">
+                    style="width: 100%; height: 250px; object-fit: contain;">
                 @endif
 
                 <div class="card-body text-center">
@@ -106,7 +106,7 @@
                                     <img src="{{ Storage::url($img->image_path) }}"
                                         class="d-block w-100 img-fluid"
                                         alt="{{ $item->item_name }}"
-                                        style="width: 100%; height: 400px; object-fit: cover;">
+                                        style="width: 100%; height: 400px; object-fit: contain;">
                                 </div>
                                 @endforeach
                             </div>
@@ -127,7 +127,7 @@
                         <img src="https://via.placeholder.com/400x400?text=No+Image"
                             class="d-block w-100 img-fluid"
                             alt="No image"
-                            style="width: 100%; height: 400px; object-fit: cover;">
+                            style="width: 100%; height: 400px; object-fit: contain;">
                         @endif
                         <p>{{ $item->description }}</p>
                         <p class="fw-bold text-primary">₱{{ $item->sell_price }}</p>

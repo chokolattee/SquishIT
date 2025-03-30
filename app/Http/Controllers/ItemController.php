@@ -113,16 +113,29 @@ class ItemController extends Controller
      */
     public function show($id)
     {
-        $item = Item::findOrFail($id);
-
-        $images = ItemImage::where('item_id', $item->item_id)->get();
-
-        $reviews = Review::where('item_id', $item->item_id)
-            ->with('customer')
-            ->latest()->get();
-
-        $reviewMedia = ReviewImage::whereIn('review_id', $reviews->pluck('review_id'))->get()->groupBy('review_id');
-
+        $item = Item::find($id);
+        $item = DB::table('item')
+            ->join('category', 'item.category_id', '=', 'category.category_id')
+            ->where('item.item_id', $id)
+            ->select('item.*', 'category.description as category')
+            ->first();
+            
+        $images = DB::table('item_images')
+            ->where('item_id', $id)
+            ->get();
+    
+        $reviews = DB::table('reviews')
+            ->join('customer', 'reviews.customer_id', '=', 'customer.customer_id')
+            ->where('reviews.item_id', $id)
+            ->select('reviews.*', DB::raw("CONCAT(customer.fname, ' ', customer.lname) as customer_name"))
+            ->latest()
+            ->get();
+    
+        $reviewMedia = DB::table('review_images')
+            ->whereIn('review_id', $reviews->pluck('review_id'))
+            ->get()
+            ->groupBy('review_id');
+    
         return view('item.show', compact('item', 'images', 'reviews', 'reviewMedia'));
     }
 
