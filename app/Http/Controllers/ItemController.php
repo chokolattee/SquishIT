@@ -149,6 +149,7 @@ class ItemController extends Controller
         // $stock = Stock::find($id);
         $item = DB::table('item')
             ->join('stock', 'item.item_id', '=', 'stock.item_id')
+            ->select('item.*', 'stock.quantity as stock_qty') 
             ->where('item.item_id', $id)
             ->first();
         // dd($item);
