@@ -56,15 +56,15 @@ class UsersDataTable extends DataTable
     public function query(User $model)
     {
         return DB::table('users')
-        ->join('customer', 'users.id', '=', 'customer.user_id')
+        ->join('customers', 'users.id', '=', 'customers.user_id')
         ->select(
             'users.id AS id',
             'users.name',
             'users.email',
             'users.role',
             'users.status',
-            'customer.addressline',
-            'customer.phone',
+            'customers.addressline',
+            'customers.phone',
             'users.created_at'
         )
         ->where('users.id', '<>', Auth::id());

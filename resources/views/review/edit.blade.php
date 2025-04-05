@@ -5,10 +5,10 @@
     <div class="review-card">
         <div class="review-header">
             <h2>Edit Your Plushie Review</h2>
-            <p class="review-subtitle">Review #{{ $review->review_id }}</p>
+            <p class="review-subtitle">Review #{{ $review->id }}</p>
         </div>
 
-        <form action="{{ route('reviews.update', $review->review_id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('reviews.update', $review->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 

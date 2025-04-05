@@ -1,4 +1,5 @@
 @extends('layouts.base')
+@extends('layouts.flash-messages')
 
 @section('content')
 <div class="container mt-5">
@@ -45,28 +46,28 @@
                     @forelse($orders as $order)
                     <div class="card mb-4 shadow-sm border-0 rounded-4 order-card">
                         <div class="card-header border-0 rounded-top-4 d-flex justify-content-between align-items-center py-3
-                            @if($order->status == 'Pending') bg-warning-subtle text-warning-emphasis 
-                            @elseif($order->status == 'Shipped') bg-info-subtle text-info-emphasis
-                            @elseif($order->status == 'Delivered') bg-success-subtle text-success-emphasis
-                            @elseif($order->status == 'Cancelled') bg-secondary-subtle text-secondary-emphasis
+                            @if($order->order_status == 'Pending') bg-warning-subtle text-warning-emphasis 
+                            @elseif($order->order_status == 'Shipped') bg-info-subtle text-info-emphasis
+                            @elseif($order->order_status == 'Delivered') bg-success-subtle text-success-emphasis
+                            @elseif($order->order_status == 'Cancelled') bg-secondary-subtle text-secondary-emphasis
                             @else bg-primary-subtle text-primary-emphasis @endif">
 
                             <div class="d-flex align-items-center">
                                 <div class="order-status-icon me-3">
-                                    @if($order->status == 'Pending')
+                                    @if($order->order_status == 'Pending')
                                     <i class="bi bi-hourglass-split fs-3"></i>
-                                    @elseif($order->status == 'Shipped')
+                                    @elseif($order->order_status == 'Shipped')
                                     <i class="bi bi-truck fs-3"></i>
-                                    @elseif($order->status == 'Delivered')
+                                    @elseif($order->order_status == 'Delivered')
                                     <i class="bi bi-house-heart fs-3"></i>
-                                    @elseif($order->status == 'Cancelled')
+                                    @elseif($order->order_status == 'Cancelled')
                                     <i class="bi bi-x-circle fs-3"></i>
                                     @else
                                     <i class="bi bi-box-seam fs-3"></i>
                                     @endif
                                 </div>
                                 <div>
-                                    <span class="fw-bold fs-5">Order #{{ $order->orderinfo_id }}</span>
+                                    <span class="fw-bold fs-5">Order #{{ $order->id }}</span>
                                     <div class="text-muted">{{ \Carbon\Carbon::parse($order->date_placed)->format('F d, Y') }}</div>
                                 </div>
                             </div>
@@ -74,25 +75,26 @@
                             {{-- Action Buttons based on Order Status --}}
                             <div>
                                 <span class="badge rounded-pill 
-                                    @if($order->status == 'Pending') bg-warning text-dark
-                                    @elseif($order->status == 'Shipped') bg-info text-white
-                                    @elseif($order->status == 'Delivered') bg-success text-white
-                                    @elseif($order->status == 'Cancelled') bg-secondary text-white
+                                    @if($order->order_status == 'Pending') bg-warning text-dark
+                                    @elseif($order->order_status == 'Shipped') bg-info text-white
+                                    @elseif($order->order_status == 'Delivered') bg-success text-white
+                                    @elseif($order->order_status == 'Cancelled') bg-secondary text-white
                                     @else bg-primary text-white @endif
-                                    px-3 py-2 me-2">{{ $order->status }}</span>
+                                    px-3 py-2 me-2">{{ $order->order_status }}</span>
 
-                                @if ($order->status === 'Pending')
-                                <form action="{{ route('orders.cancel', $order->orderinfo_id) }}" method="POST" class="d-inline">
+                                @if ($order->order_status === 'Pending')
+                                <form action="{{ route('orders.cancel', $order->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PUT')
                                     <button type="submit" class="btn btn-outline-danger rounded-pill btn-sm px-3" onclick="return confirm('Are you sure you want to cancel this order?')">
                                         <i class="bi bi-x-circle me-1"></i> Cancel Order
                                     </button>
                                 </form>
-                                @elseif ($order->status === 'Delivered')
+                                @elseif ($order->order_status === 'Delivered')
                                 @php
-                                $hasReview = \App\Models\Review::where('orderinfo_id', $order->orderinfo_id)
-                                ->where('customer_id', auth()->user()->customer->customer_id)
+                                // Check if a review exists for the current order
+                                $hasReview = \App\Models\Review::where('order_id', $order->id)
+                                ->where('customer_id', auth()->user()->customer->id)
                                 ->exists();
                                 @endphp
 
@@ -101,7 +103,7 @@
                                     <i class="bi bi-star-fill me-1"></i> View Review
                                 </a>
                                 @else
-                                <a href="{{ route('orders.review', $order->orderinfo_id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-3">
+                                <a href="{{ route('orders.review', $order->id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-3">
                                     <i class="bi bi-pencil me-1"></i> Write Review
                                 </a>
                                 @endif
@@ -117,8 +119,9 @@
                                             <i class="bi bi-truck text-primary"></i>
                                         </div>
                                         <span class="text-muted">Shipping:</span>
-                                        <span class="ms-2">{{ $order->shipping_method }}
-                                            @if($order->shipping_rate > 0)
+                                        <span class="ms-2">
+                                            {{ $order->shipping_method ?? 'N/A' }}
+                                            @if(isset($order->shipping_rate) && $order->shipping_rate > 0)
                                             (₱{{ number_format($order->shipping_rate, 2) }})
                                             @endif
                                         </span>

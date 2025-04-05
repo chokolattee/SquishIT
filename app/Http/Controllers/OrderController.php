@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Mail\SendOrderStatus;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderUpdate;
@@ -15,49 +16,60 @@ class OrderController extends Controller
 {
     public function processOrder($id)
     {
-        $customer = DB::table('customer as c')
-            ->join('orderinfo as o', 'o.customer_id', '=', 'c.customer_id')
-            ->where('o.orderinfo_id', $id)
-            ->select('c.lname', 'c.fname', 'c.addressline', 'c.phone', 'o.orderinfo_id',  'o.status', 'o.date_placed')
+        $customer = DB::table('customers as c')
+            ->join('orders as o', 'o.customer_id', '=', 'c.id')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
+            ->where('o.id', $id)
+            ->select('c.lname', 'c.fname', 'c.addressline', 'c.phone', 'o.id as order_id', 's.status', 'o.date_placed')
             ->first();
 
-        $orders = DB::table('customer as c')
-            ->join('orderinfo as o', 'o.customer_id', '=', 'c.customer_id')
-            ->join('shipping as s', 'o.shipping_id', '=', 's.shipping_id')
-            ->join('orderline as ol', 'o.orderinfo_id', '=', 'ol.orderinfo_id')
-            ->join('item as i', 'ol.item_id', '=', 'i.item_id')
-            ->leftJoin('item_images as img', 'i.item_id', '=', 'img.item_id')
-            ->where('o.orderinfo_id', $id)
+        $orders = DB::table('customers as c')
+            ->join('orders as o', 'o.customer_id', '=', 'c.id')
+            ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+            ->join('order_item as io', 'o.id', '=', 'io.order_id')
+            ->join('items as i', 'io.item_id', '=', 'i.id')
+            ->leftJoin('item_images as img', 'i.id', '=', 'img.item_id')
+            ->where('o.id', $id)
             ->select(
-                'i.item_id',
+                'i.id',
+                'i.item_name',
+                'img.image_path',
                 'i.description',
-                'ol.quantity',
+                'io.quantity',
                 'i.sell_price',
-                's.region as shipping_region',
-                's.rate as shipping_rate'
+                'sh.region as shipping_region',
+                'sh.rate as shipping_rate'
             )
             ->groupBy(
-                'i.item_id',
+                'i.id',
+                'i.item_name',
+                'img.image_path',
                 'i.description',
-                'ol.quantity',
+                'io.quantity',
                 'i.sell_price',
-                's.region',
-                's.rate'
+                'sh.region',
+                'sh.rate'
             )
             ->get();
 
-
-        $total = $orders->map(function ($item) {
-            return $item->sell_price * $item->quantity;
-        })->sum();
+        $orderItems = DB::table('order_item as oi')
+        ->join('items as i', 'oi.item_id', '=', 'i.id')
+        ->where('oi.order_id', $id)
+        ->select(
+            'i.item_name',
+            'oi.quantity',
+            'i.sell_price',
+            DB::raw('(oi.quantity * i.sell_price) as subtotal')
+        )
+        ->get();
 
         $images = DB::table('item_images')->get()->groupBy('item_id');
 
-        $status = DB::table('orderinfo')
-            ->where('orderinfo_id', $id)
+        $status = DB::table('statuses')
+            ->where('id', $id)
             ->value('status');
 
-        $enumColumn = DB::select("SHOW COLUMNS FROM orderinfo WHERE Field = 'status'");
+        $enumColumn = DB::select("SHOW COLUMNS FROM statuses WHERE Field = 'status'");
         preg_match('/^enum\((.*)\)$/', $enumColumn[0]->Type, $matches);
         $statusChoices = [];
         if (isset($matches[1])) {
@@ -69,24 +81,23 @@ class OrderController extends Controller
         $shippingRegion = $orders->isNotEmpty() ? $orders[0]->shipping_region : 'N/A';
         $shippingRate = $orders->isNotEmpty() ? $orders[0]->shipping_rate : 0;
 
-
         return view('order.processOrder', compact(
             'customer',
             'orders',
-            'total',
             'images',
             'status',
             'statusChoices',
             'shippingRegion',
-            'shippingRate'
+            'shippingRate',
+            'orderItems'
         ));
     }
-
-
     public function orderUpdate(Request $request, $id)
     {
+        $statusId = DB::table('statuses')->where('status', $request->status)->value('id');
+
         $updateData = [
-            'status' => $request->status
+            'status_id' => $statusId,
         ];
 
         if (strtolower($request->status) === 'shipped') {
@@ -97,35 +108,41 @@ class OrderController extends Controller
             $updateData['date_delivered'] = Carbon::now()->toDateString();
         }
 
-        $order = Order::where('orderinfo_id', $id)->update($updateData);
+        $order = Order::where('id', $id)->update($updateData);
 
         if ($order > 0) {
-            $myOrder = DB::table('customer as c')
-                ->join('orderinfo as o', 'o.customer_id', '=', 'c.customer_id')
-                ->join('shipping as s', 'o.shipping_id', '=', 's.shipping_id')
-                ->join('orderline as ol', 'o.orderinfo_id', '=', 'ol.orderinfo_id')
-                ->join('item as i', 'ol.item_id', '=', 'i.item_id')
-                ->leftJoin('item_images as img', 'i.item_id', '=', 'img.item_id')
-                ->where('o.orderinfo_id', $id)
+            $myOrder = DB::table('customers as c')
+                ->join('orders as o', 'o.customer_id', '=', 'c.id')
+                ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+                ->join('order_item as io', 'o.id', '=', 'io.order_id')
+                ->join('items as i', 'io.item_id', '=', 'i.id')
+                ->leftJoin('item_images as img', 'i.id', '=', 'img.item_id')
+                ->join('statuses as s', 'o.status_id', '=', 's.id') // Join with status table
+                ->where('o.id', $id)
                 ->select(
                     'c.user_id',
-                    'ol.item_id',
+                    'io.item_id',
                     'i.item_name',
                     'i.description',
-                    'ol.quantity',
+                    'io.quantity',
                     'img.image_path',
                     'i.sell_price',
-                    's.region as shipping_region',
-                    's.rate as shipping_rate'
+                    'sh.region as shipping_region',
+                    'sh.rate as shipping_rate',
+                    's.status as order_status'
                 )
                 ->get();
 
-            $orderInfo = DB::table('orderinfo')->where('orderinfo_id', $id)->first();
+            $orders = DB::table('orders')
+                ->join('statuses as s', 'orders.status_id', '=', 's.id')
+                ->where('orders.id', $id)
+                ->select('orders.*', 's.status as order_status')
+                ->first();
 
             $user = DB::table('users as u')
-                ->join('customer as c', 'u.id', '=', 'c.user_id')
-                ->join('orderinfo as o', 'o.customer_id', '=', 'c.customer_id')
-                ->where('o.orderinfo_id', $id)
+                ->join('customers as c', 'u.id', '=', 'c.user_id')
+                ->join('orders as o', 'o.customer_id', '=', 'c.id')
+                ->where('o.id', $id)
                 ->select('u.id', 'u.email', 'u.name', 'c.addressline', 'c.town', 'c.phone')
                 ->first();
 
@@ -136,7 +153,7 @@ class OrderController extends Controller
             $shippingRate = $myOrder->isNotEmpty() ? $myOrder[0]->shipping_rate : 0;
             $grandTotal = $subtotal + $shippingRate;
 
-            Mail::to($user->email)->send(new OrderUpdate($orderInfo, $myOrder, $user, $grandTotal));
+            Mail::to($user->email)->send(new OrderUpdate($orders, $myOrder, $user, $grandTotal));
 
             return redirect()->route('admin.orders')->with('success', 'Order updated successfully!');
         }
@@ -149,51 +166,53 @@ class OrderController extends Controller
         $userId = Auth::id();
         $activeTab = $request->get('status', 'all');
 
-        $query = DB::table('orderinfo as o')
-            ->join('customer as c', 'c.customer_id', '=', 'o.customer_id')
-            ->leftJoin('shipping as s', 's.shipping_id', '=', 'o.shipping_id')
+        $query = DB::table('orders as o')
+            ->join('customers as c', 'c.id', '=', 'o.customer_id')
+            ->leftJoin('shippings as sh', 'sh.id', '=', 'o.shipping_id')
+            ->join('statuses as s', 's.id', '=', 'o.status_id')
             ->where('c.user_id', $userId)
             ->select(
-                'o.orderinfo_id',
-                'o.status',
+                'o.id',
+                's.status as order_status',
                 'o.date_placed',
-                's.region as shipping_method',
-                's.rate as shipping_rate'
+                'sh.region as shipping_method',
+                'sh.rate as shipping_rate'
             );
 
         if ($activeTab !== 'all') {
-            $query->where('o.status', $activeTab);
+            $query->where('s.status', $activeTab);
         }
 
-        $orders = $query->orderBy('o.orderinfo_id', 'desc')->get();
+        $orders = $query->orderBy('o.id', 'desc')->get();
 
-        $statusCounts = DB::table('orderinfo as o')
-            ->join('customer as c', 'c.customer_id', '=', 'o.customer_id')
+        $statusCounts = DB::table('orders as o')
+            ->join('customers as c', 'c.id', '=', 'o.customer_id')
+            ->join('statuses as s', 's.id', '=', 'o.status_id')
             ->where('c.user_id', $userId)
-            ->select('o.status', DB::raw('count(*) as count'))
-            ->groupBy('o.status')
-            ->pluck('count', 'status')
+            ->select('s.status', DB::raw('count(*) as count'))
+            ->groupBy('s.status')
+            ->pluck('count', 's.status')
             ->toArray();
 
         $statusCounts['all'] = array_sum($statusCounts);
 
         foreach ($orders as $order) {
             if (!isset($order->shipping_method)) {
-                $order->shipping_method = 'Standard Shipping';
+                $order->shipping_method = 'Standard shipping';
             }
             if (!isset($order->shipping_rate)) {
                 $order->shipping_rate = 0;
             }
 
             // Get order items
-            $orderItems = DB::table('orderline as ol')
-                ->join('item as i', 'ol.item_id', '=', 'i.item_id')
-                ->where('ol.orderinfo_id', $order->orderinfo_id)
+            $orderItems = DB::table('order_item as io')
+                ->join('items as i', 'io.item_id', '=', 'i.id')
+                ->where('io.order_id', $order->id)
                 ->select(
-                    'i.item_id',
+                    'i.id as item_id',
                     'i.item_name',
                     'i.description',
-                    'ol.quantity',
+                    'io.quantity',
                     'i.sell_price'
                 )
                 ->get();
@@ -225,22 +244,51 @@ class OrderController extends Controller
         return view('order.index', compact('orders', 'activeTab', 'statusCounts'));
     }
 
-    public function cancel($orderId)
+    public function cancel(Request $request, $orderId)
     {
-        $order = DB::table('orderinfo')->where('orderinfo_id', $orderId)->first();
+        $order = DB::table('orders')
+            ->join('status', 'orders.status_id', '=', 'status.id')
+            ->where('orders.id', $orderId)
+            ->select('orders.*', 'status.status as order_status')
+            ->first();
 
         if (!$order) {
             return redirect()->back()->with('error', 'Order not found.');
         }
 
-        if ($order->status !== 'Pending') {
+        $pendingStatusId = DB::table('status')->where('status', 'Pending')->value('id');
+
+        if ($order->status_id !== $pendingStatusId) {
             return redirect()->back()->with('error', 'Only pending orders can be cancelled.');
         }
 
-        DB::table('orderinfo')
-            ->where('orderinfo_id', $orderId)
-            ->update(['status' => 'Cancelled']);
+        try {
+            DB::beginTransaction();
 
-        return redirect()->back()->with('success', 'Order cancelled successfully.');
+            $orderItems = DB::table('order_item')->where('order_id', $orderId)->get();
+
+            foreach ($orderItems as $orderItem) {
+                $stock = DB::table('item_stock')->where('item_id', $orderItem->item_id)->first();
+
+                if ($stock) {
+                    DB::table('item_stock')
+                        ->where('item_id', $orderItem->item_id)
+                        ->update(['quantity' => $stock->quantity + $orderItem->quantity]);
+                }
+            }
+
+            $cancelledStatusId = DB::table('status')->where('status', 'Cancelled')->value('id');
+            DB::table('orders')
+                ->where('id', $orderId)
+                ->update(['status_id' => $cancelledStatusId]);
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Order cancelled successfully, and stock has been restored.');
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            return redirect()->back()->with('error', 'An error occurred while cancelling the order: ' . $e->getMessage());
+        }
     }
 }

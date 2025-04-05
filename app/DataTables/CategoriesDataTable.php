@@ -20,22 +20,22 @@ class CategoriesDataTable extends DataTable
             ->filter(function ($query) {
                 if ($search = request('search')['value'] ?? null) {
                     $query->where('c.description', 'like', "%{$search}%")
-                          ->orWhere('c.category_id', 'like', "%{$search}%")
+                          ->orWhere('c.id', 'like', "%{$search}%")
                           ->orHavingRaw('GROUP_CONCAT(DISTINCT i.item_name SEPARATOR ", ") LIKE ?', ["%{$search}%"]);
                 }
             })
             ->addColumn('action', function ($row) {
                 if ($row->deleted_at) {
                     return '
-                        <form method="POST" action="' . route('category.restore', $row->category_id) . '" style="display:inline-block;">
+                        <form method="POST" action="' . route('categories.restore', $row->id) . '" style="display:inline-block;">
                             ' . csrf_field() . '
                             <button type="submit" class="btn btn-sm btn-warning">Restore</button>
                         </form>
                     ';
                 } else {
                     return '
-                        <a href="' . route('category.edit', $row->category_id) . '" class="btn btn-sm btn-primary me-1">Edit</a>
-                        <form method="POST" action="' . route('category.destroy', $row->category_id) . '" style="display:inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this category?\');">
+                        <a href="' . route('categories.edit', $row->id) . '" class="btn btn-sm btn-primary me-1">Edit</a>
+                        <form method="POST" action="' . route('categories.destroy', $row->id) . '" style="display:inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this category?\');">
                             ' . csrf_field() . method_field('DELETE') . '
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
@@ -43,7 +43,7 @@ class CategoriesDataTable extends DataTable
                 }
             })
             ->rawColumns(['action'])
-            ->setRowId('category_id');
+            ->setRowId('id');
     }
 
     /**
@@ -51,19 +51,19 @@ class CategoriesDataTable extends DataTable
      */
     public function query()
     {
-        $categories = DB::table('category as c')
-            ->leftJoin('item as i', 'c.category_id', '=', 'i.category_id')
-            ->leftJoin('stock as s', 'i.item_id', '=', 's.item_id')
+        $categories = DB::table('categories as c')
+            ->leftJoin('items as i', 'c.id', '=', 'i.category_id')
+            ->leftJoin('item_stock as s', 'i.id', '=', 's.item_id')
             ->select(
-                'c.category_id',
+                'c.id',
                 'c.description',
                 'c.deleted_at',
-                DB::raw('COUNT(i.item_id) as item_count'),
-                DB::raw('SUM(s.quantity) as total_stock'),
+                DB::raw('COUNT(i.id) as item_count'),
+                DB::raw('SUM(s.quantity) as total_item_stock'),
                 DB::raw('GROUP_CONCAT(DISTINCT i.item_name SEPARATOR ", ") as item_names')
             )
             ->groupBy(
-                'c.category_id',
+                'c.id',
                 'c.description',
                 'c.deleted_at'
             );
@@ -111,7 +111,7 @@ class CategoriesDataTable extends DataTable
                 ->addClass('text-center')
                 ->title('Actions'),
 
-            Column::make('category_id')
+            Column::make('id')
                 ->title('Category ID')
                 ->addClass('text-center'),
 
@@ -124,8 +124,8 @@ class CategoriesDataTable extends DataTable
                 ->addClass('text-center')
                 ->searchable(false),
 
-            Column::make('total_stock')
-                ->title('Total Stock')
+            Column::make('total_item_stock')
+                ->title('Total item_stock')
                 ->addClass('text-center')
                 ->searchable(false), 
 

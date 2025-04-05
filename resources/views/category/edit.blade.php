@@ -15,7 +15,7 @@ use Collective\Html\FormFacade as Form;
                     </h4>
                 </div>
                 <div class="card-body">
-                    {!! Form::model($category, ['route' => ['category.update', $category->category_id], 'method' => 'PUT']) !!}
+                    {!! Form::model($category, ['route' => ['categories.update', $category->id], 'method' => 'PUT']) !!}
 
                     <!-- Category Description -->
                     <div class="mb-4">

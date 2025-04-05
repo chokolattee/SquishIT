@@ -14,9 +14,6 @@ use App\Models\Customer;
 
 class UserController extends Controller
 {
-    
-
-    
     public function update_role(Request $request, $id)
     {
         // dd($request->role, $id);
@@ -55,7 +52,7 @@ class UserController extends Controller
         $user = Auth::user();
         $layout = $user->role === 'Admin' ? 'layouts.admin-header' : 'layouts.header';
     
-        $customer = DB::table('customer')->where('user_id', $user->id)->first();
+        $customer = DB::table('customers')->where('user_id', $user->id)->first();
 
           
         return view('users.edit', compact('user', 'customer', 'layout'));

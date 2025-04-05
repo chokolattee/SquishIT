@@ -48,12 +48,12 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function ()  {
     Route::post('/items', [ItemController::class, 'store'])->name('items.store');
     Route::put('/items/{item}/update', [ItemController::class, 'update'])->name('items.update');
 
-    Route::get('/categories/create', [CategoryController::class, 'create'])->name('category.create');
-    Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('category.edit');
-    Route::delete('/categories/{category}/delete', [CategoryController::class, 'destroy'])->name('category.destroy');
-    Route::post('/categories/store', [CategoryController::class, 'store'])->name('category.store');
-    Route::put('/categories/{category}/update', [CategoryController::class, 'update'])->name('category.update');
-    Route::get('/categories/restore/{id}', [CategoryController::class, 'restore'])->name('category.restore');
+    Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+    Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
+    Route::delete('/categories/{category}/delete', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::post('/categories/store', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{category}/update', [CategoryController::class, 'update'])->name('categories.update');
+    Route::get('/categories/restore/{id}', [CategoryController::class, 'restore'])->name('categories.restore');
 
     Route::get('/users', [DashboardController::class, 'getUsers'])->name('admin.users');
     Route::get('/orders', [DashboardController::class, 'getOrders'])->name('admin.orders');

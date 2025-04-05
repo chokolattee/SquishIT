@@ -10,9 +10,9 @@
     <div style="max-width: 700px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <h2 style="color: #333;">Thank you for your order from Plush-IT!</h2>
 
-        <p><strong>Order ID:</strong> {{ $order->orderinfo_id }}</p>
+        <p><strong>Order ID:</strong> {{ $order->id }}</p>
         <p><strong>Order Date:</strong> {{ $order->date_placed }}</p>
-        <p><strong>Order Status:</strong> {{ $order->status }}</p>
+        <p><strong>Order Status:</strong> Pending </p>
 
         <h3 style="margin-top: 30px;">Customer Details</h3>
         <p>Name: {{ $customer->fname }} {{ $customer->lname }}</p>

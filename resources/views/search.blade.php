@@ -62,11 +62,11 @@
                     </div>
 
                     <div class="card-footer d-flex justify-content-between gap-2 border-0" style="background-color: #FFF9FB;">
-                        <a href="{{ route('addToCart', $item->item_id) }}" class="btn btn-sm rounded-pill w-100 py-2" 
+                        <a href="{{ route('addToCart', $item->id) }}" class="btn btn-sm rounded-pill w-100 py-2" 
                            style="background-color: #FF6B9E; color: white;">
                             <i class="fas fa-cart-plus me-1"></i> Add to Cart
                         </a>
-                        <a href="{{ route('item.show', $item->item_id) }}" class="btn btn-sm btn-outline w-100 py-2 rounded-pill"
+                        <a href="{{ route('item.show', $item->id) }}" class="btn btn-sm btn-outline w-100 py-2 rounded-pill"
                            style="color: #8A6FDF; border-color: #8A6FDF;">
                             <i class="fas fa-eye me-1"></i> View Details
                         </a>

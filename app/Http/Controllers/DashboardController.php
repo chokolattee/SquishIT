@@ -21,7 +21,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         // 1. Customer Demographics Chart
-        $customer = DB::table('customer')
+        $customer = DB::table('customers')
             ->whereNotNull('addressline')
             ->select(DB::raw('count(addressline) as total'), 'addressline')
             ->groupBy('addressline')
@@ -50,18 +50,19 @@ class DashboardController extends Controller
         $totalUsers = User::count();
 
         // 3. Yearly Sales Chart
-        $orderTotals = DB::table('orderinfo')
-            ->join('shipping', 'orderinfo.shipping_id', '=', 'shipping.shipping_id')
-            ->join('orderline', 'orderinfo.orderinfo_id', '=', 'orderline.orderinfo_id')
-            ->join('item', 'orderline.item_id', '=', 'item.item_id')
+        $orderTotals = DB::table('orders as o')
+            ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+            ->join('order_item as oi', 'o.id', '=', 'oi.order_id')
+            ->join('items as i', 'oi.item_id', '=', 'i.id')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
             ->select(
-                'orderinfo.orderinfo_id',
-                DB::raw('YEAR(orderinfo.date_placed) as year'),
-                DB::raw('SUM(orderline.quantity * item.sell_price) as item_total'),
-                'shipping.rate'
+                'o.id',
+                DB::raw('YEAR(o.date_placed) as year'),
+                DB::raw('SUM(oi.quantity * i.sell_price) as item_total'),
+                'sh.rate'
             )
-            ->whereIn('orderinfo.status', ['shipped', 'delivered']) 
-            ->groupBy('orderinfo.orderinfo_id', 'year', 'shipping.rate')
+            ->whereIn('s.status', ['shipped', 'delivered']) 
+            ->groupBy('o.id', 'year', 'sh.rate')
             ->get();
 
         $yearlySales = [];
@@ -76,18 +77,19 @@ class DashboardController extends Controller
 
 
         // 4. Monthly Sales Chart
-        $monthlyOrders = DB::table('orderinfo')
-            ->join('shipping', 'orderinfo.shipping_id', '=', 'shipping.shipping_id')
-            ->join('orderline', 'orderinfo.orderinfo_id', '=', 'orderline.orderinfo_id')
-            ->join('item', 'orderline.item_id', '=', 'item.item_id')
+        $monthlyOrders = DB::table('orders as o')
+            ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+            ->join('order_item as oi', 'o.id', '=', 'oi.order_id')
+            ->join('items as i', 'oi.item_id', '=', 'i.id')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
             ->select(
-                DB::raw("DATE_FORMAT(orderinfo.date_placed, '%Y-%m') as month"),
-                DB::raw('SUM(orderline.quantity * item.sell_price) as item_total'),
-                'orderinfo.orderinfo_id',
-                'shipping.rate'
+                DB::raw("DATE_FORMAT(o.date_placed, '%Y-%m') as month"),
+                DB::raw('SUM(oi.quantity * i.sell_price) as item_total'),
+                'o.id',
+                'sh.rate'
             )
-            ->whereIn('orderinfo.status', ['shipped', 'delivered'])
-            ->groupBy('orderinfo.orderinfo_id', 'month', 'shipping.rate')
+            ->whereIn('s.status', ['shipped', 'delivered'])
+            ->groupBy('o.id', 'month', 'sh.rate')
             ->get();
 
         $monthlySales = [];
@@ -105,19 +107,20 @@ class DashboardController extends Controller
         $startDate = $request->start_date ?? now()->subMonth()->toDateString();
         $endDate = $request->end_date ?? now()->toDateString();
 
-        $rangeOrders = DB::table('orderinfo')
-            ->join('shipping', 'orderinfo.shipping_id', '=', 'shipping.shipping_id')
-            ->join('orderline', 'orderinfo.orderinfo_id', '=', 'orderline.orderinfo_id')
-            ->join('item', 'orderline.item_id', '=', 'item.item_id')
+        $rangeOrders = DB::table('orders as o')
+            ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+            ->join('order_item as oi', 'o.id', '=', 'oi.order_id')
+            ->join('items as i', 'oi.item_id', '=', 'i.id')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
             ->select(
-                DB::raw('DATE(orderinfo.date_placed) as date'),
-                DB::raw('SUM(orderline.quantity * item.sell_price) as item_total'),
-                'orderinfo.orderinfo_id',
-                'shipping.rate'
+                DB::raw('DATE(o.date_placed) as date'),
+                DB::raw('SUM(oi.quantity * i.sell_price) as item_total'),
+                'o.id',
+                'sh.rate'
             )
-            ->whereBetween('orderinfo.date_placed', [$startDate, $endDate])
-            ->whereIn('orderinfo.status', ['shipped', 'delivered'])
-            ->groupBy('orderinfo.orderinfo_id', 'date', 'shipping.rate')
+            ->whereBetween('o.date_placed', [$startDate, $endDate])
+            ->whereIn('s.status', ['shipped', 'delivered'])
+            ->groupBy('o.id', 'date', 'sh.rate')
             ->get();
 
         $rangeSales = [];
@@ -132,13 +135,14 @@ class DashboardController extends Controller
 
 
         // 6. Pie Chart - Product Contribution to Sales
-        $productSales = DB::table('orderline')
-            ->join('item', 'orderline.item_id', '=', 'item.item_id')
-            ->join('orderinfo', 'orderline.orderinfo_id', '=', 'orderinfo.orderinfo_id')
-            ->whereIn('orderinfo.status', ['shipped', 'delivered'])
-            ->select('item.item_name', DB::raw('SUM(orderline.quantity * item.sell_price) as total'))
-            ->groupBy('item.item_name')
-            ->pluck('total', 'item.item_name')
+        $productSales = DB::table('order_item as oi')
+            ->join('items as i', 'oi.item_id', '=', 'i.id')
+            ->join('orders as o', 'oi.order_id', '=', 'o.id')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
+            ->whereIn('s.status', ['shipped', 'delivered'])
+            ->select('i.item_name', DB::raw('SUM(oi.quantity * i.sell_price) as total'))
+            ->groupBy('i.item_name')
+            ->pluck('total', 'i.item_name')
             ->all();
 
         $pieChart = new SalesChart;

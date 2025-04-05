@@ -10,18 +10,20 @@ use Spatie\Searchable\SearchResult;
 class Customer extends Model implements Searchable
 {
     use HasFactory;
-    protected $table = 'customer';
-    protected $primaryKey = 'customer_id';
+    protected $table = 'customers';
+    protected $primaryKey = 'id';
     public $timestamps = false;
 
     protected $fillable = [
-        'user_id', // ✅ Add this line
+        'user_id', 
         'title',
         'fname',
         'lname',
         'addressline',
         'town',
         'phone',
+        'created_at', 
+        'updated_at' 
     ];
 
     public function user()

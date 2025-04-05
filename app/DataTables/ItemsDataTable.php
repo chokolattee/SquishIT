@@ -22,7 +22,7 @@ class ItemsDataTable extends DataTable
                     $query->where('i.item_name', 'like', "%{$search}%")
                           ->orWhere('i.description', 'like', "%{$search}%")
                           ->orWhere('c.description', 'like', "%{$search}%")
-                          ->orWhere('i.item_id', 'like', "%{$search}%");
+                          ->orWhere('i.id', 'like', "%{$search}%");
                 }
             })
             ->editColumn('images', function ($row) {
@@ -39,17 +39,14 @@ class ItemsDataTable extends DataTable
                 if ($row->deleted_at) {
                     return '
                         <div class="d-flex justify-content-center">
-                            <form method="POST" action="' . route('items.restore', $row->item_id) . '">
-                                ' . csrf_field() . '
-                                <button type="submit" class="btn btn-sm btn-warning">Restore</button>
-                            </form>
+                            <a href="' . route('items.restore', $row->id) . '" class="btn btn-sm btn-warning">Restore</a>
                         </div>
                     ';
                 } else {
                     return '
                         <div class="d-flex justify-content-center gap-2">
-                            <a href="' . route('items.edit', $row->item_id) . '" class="btn btn-sm btn-primary">Edit</a>
-                            <form method="POST" action="' . route('items.destroy', $row->item_id) . '" onsubmit="return confirm(\'Are you sure you want to delete this item?\');">
+                            <a href="' . route('items.edit', $row->id) . '" class="btn btn-sm btn-primary">Edit</a>
+                            <form method="POST" action="' . route('items.destroy', $row->id) . '" onsubmit="return confirm(\'Are you sure you want to delete this item?\');">
                                 ' . csrf_field() . method_field('DELETE') . '
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
@@ -58,7 +55,7 @@ class ItemsDataTable extends DataTable
                 }
             })
             ->rawColumns(['action', 'images'])
-            ->setRowId('item_id');
+            ->setRowId('id');
     }
 
     /**
@@ -66,12 +63,15 @@ class ItemsDataTable extends DataTable
      */
     public function query()
     {
-        $items = DB::table('item as i')
-            ->leftJoin('category as c', 'i.category_id', '=', 'c.category_id')
-            ->leftJoin('item_images as ii', 'i.item_id', '=', 'ii.item_id')
-            ->leftJoin('stock as s', 'i.item_id', '=', 's.item_id') // Join stock table
+        $items = DB::table('items as i')
+            ->leftJoin('categories as c', 'i.category_id', '=', 'c.id')
+            ->leftJoin('item_images as ii', function($join) {
+                $join->on('i.id', '=', 'ii.item_id')
+                     ->whereNull('ii.deleted_at'); 
+            })
+            ->leftJoin('item_stock as s', 'i.id', '=', 's.item_id') 
             ->select(
-                'i.item_id',
+                'i.id',
                 'i.item_name',
                 'i.description',
                 'i.cost_price',
@@ -83,7 +83,7 @@ class ItemsDataTable extends DataTable
                 DB::raw('GROUP_CONCAT(ii.image_path) as images')
             )
             ->groupBy(
-                'i.item_id',
+                'i.id',
                 'i.item_name',
                 'i.description',
                 'i.cost_price',
@@ -137,7 +137,7 @@ class ItemsDataTable extends DataTable
                 ->width(100)
                 ->addClass('text-center'),
 
-            Column::make('item_id')->title('Item ID'),
+            Column::make('id')->title('Item ID'),
             Column::make('item_name')->title('Item Name')->searchable(true),
             Column::make('description')->title('Description')->searchable(true),
             Column::make('cost_price')->title('Cost Price'),

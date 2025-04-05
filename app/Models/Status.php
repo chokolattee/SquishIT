@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Shipping extends Model
+class Status extends Model
 {
     use HasFactory;
 
-    protected $table = 'shippings'; 
+    protected $table = 'statuses';
     protected $primaryKey = 'id';
-    protected $fillable = ['region', 'rate'];
+    public $timestamps = false;
+    protected $fillable = ['status'];
+
 }

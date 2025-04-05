@@ -22,6 +22,7 @@ class UserSeeder extends Seeder
             $user->name = $fname . ' ' . $lname;
             $user->email = strtolower($fname . '.' . $lname . '@gmail.com'); 
             $user->password = bcrypt('password');
+            $user->profile_image = 'default-profile.jpg';
             $user->save();
         
             $towns = [
@@ -45,8 +46,10 @@ class UserSeeder extends Seeder
             $customer->lname = $lname;
             $customer->addressline = $addressline; 
             $customer->town = $town; 
-           $customer->phone = $phone;
+            $customer->phone = $phone;
             $customer->user_id = $user->id;
+            $customer->created_at = now();
+            $customer->updated_at = now();
             $customer->save();
         }
     }

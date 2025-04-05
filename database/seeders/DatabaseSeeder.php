@@ -21,6 +21,13 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         // $this->call(UserSeeder::class);
-        $this->call(CategorySeeder::class);
+        // $this->call(CategorySeeder::class);
+        // $this->call(StatusSeeder::class);
+        // $this->call(ItemSeeder::class);
+        // $this->call(ShippingSeeder::class);
+        // $this->call(OrderSeeder::class);
+        // $this->call(ReviewSeeder::class);
+        $this->call(BadWordsSeeder::class);
     }
-}
+    }
+

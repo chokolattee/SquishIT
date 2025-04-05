@@ -14,7 +14,7 @@ class ItemImage extends Model
     
     protected $table = 'item_images'; 
 
-    protected $primaryKey = 'itemimg_id'; 
+    protected $primaryKey = 'id'; 
 
     protected $fillable = [
         'item_id',
@@ -23,6 +23,6 @@ class ItemImage extends Model
 
     public function item()
     {
-        return $this->belongsTo(Item::class, 'item_id', 'item_id');
+        return $this->belongsTo(Item::class, 'item_id', 'id');
     }
 }

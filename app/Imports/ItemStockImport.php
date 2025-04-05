@@ -8,15 +8,32 @@ use App\Models\Stock;
 use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use Illuminate\Support\Collection;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use Exception;
 
 class ItemStockImport implements ToCollection, WithHeadingRow, WithDrawings
 {
     protected $drawings = [];
+    protected $client;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'timeout' => 15,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept' => 'image/webp,image/apng,image/*,*/*;q=0.8',
+                'Accept-Language' => 'en-US,en;q=0.9',
+            ],
+        ]);
+    }
 
     public function drawings()
     {
@@ -25,8 +42,56 @@ class ItemStockImport implements ToCollection, WithHeadingRow, WithDrawings
 
     public function collection(Collection $rows)
     {
-        $drawingMap = [];
+        $drawingMap = $this->mapDrawingsByRow();
 
+        foreach ($rows as $index => $row) {
+            $currentRow = $index + 2; // Excel data starts at row 2
+            try {
+                $this->validateRow($row, $currentRow);
+
+                $category = Category::firstOrCreate(
+                    ['description' => $row['category_name']],
+                    ['created_at' => now(), 'updated_at' => now()]
+                );
+
+                $item = Item::create([
+                    'item_name'   => $row['item_name'],
+                    'description' => $row['description'] ?? null,
+                    'cost_price'  => $row['cost_price'] ?? 0,
+                    'sell_price'  => $row['sell_price'] ?? 0,
+                    'category_id' => $category->id,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+
+                Stock::create([
+                    'item_id'  => $item->id,
+                    'quantity' => $row['quantity'] ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Process embedded drawings
+                if (isset($drawingMap[$currentRow])) {
+                    foreach ($drawingMap[$currentRow] as $drawing) {
+                        $this->processDrawing($drawing, $item->id);
+                    }
+                }
+
+                // Process image URLs
+                if (!empty($row['image_path'])) {
+                    $this->processImageUrls($row['image_path'], $item->id);
+                }
+            } catch (Exception $e) {
+                Log::error("Import error on row {$currentRow}: " . $e->getMessage());
+                continue;
+            }
+        }
+    }
+
+    protected function mapDrawingsByRow()
+    {
+        $drawingMap = [];
         foreach ($this->drawings as $drawing) {
             if ($drawing instanceof Drawing && $drawing->getCoordinates()) {
                 $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::coordinateFromString($drawing->getCoordinates());
@@ -34,48 +99,90 @@ class ItemStockImport implements ToCollection, WithHeadingRow, WithDrawings
                 $drawingMap[$rowNumber][] = $drawing;
             }
         }
+        return $drawingMap;
+    }
 
-        $excelDataStartRow = 2;
+    protected function validateRow($row, $currentRow)
+    {
+        if (empty($row['item_name'])) {
+            throw new Exception("Item name is required on row {$currentRow}");
+        }
 
-        foreach ($rows as $index => $row) {
-            $currentRow = $index + $excelDataStartRow;
-            $category = Category::where('description', $row['category_name'])->first();
+        if (empty($row['category_name'])) {
+            throw new Exception("Category name is required on row {$currentRow}");
+        }
+    }
 
-            $item = Item::create([
-                'item_name'   => $row['item_name'],
-                'description' => $row['description'] ?? null,
-                'cost_price'  => $row['cost_price'],
-                'sell_price'  => $row['sell_price'],
-                'category_id' => $category ? $category->category_id : null,
+    protected function processDrawing(Drawing $drawing, $itemId)
+    {
+        try {
+            $extension = $drawing->getExtension() ?: 'jpg';
+            $hashName = Str::random(40) . '.' . $extension;
+            $storagePath = 'public/images/' . $hashName;
+
+            Storage::put($storagePath, file_get_contents($drawing->getPath()));
+
+            ItemImage::create([
+                'item_id'    => $itemId,
+                'image_path' => $storagePath,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
+        } catch (Exception $e) {
+            Log::error("Failed to process drawing for item {$itemId}: " . $e->getMessage());
+        }
+    }
 
-            Stock::create([
-                'item_id'  => $item->item_id,
-                'quantity' => $row['quantity'],
-            ]);
+    protected function processImageUrls($imagePaths, $itemId)
+    {
+        $urls = explode(',', $imagePaths);
 
-            if (isset($row['image_path'])) {
-                $imagePaths = explode(',', $row['image_path']); 
-                foreach ($imagePaths as $imagePath) {
-                    $imagePath = trim($imagePath); 
-            
-                    // Check if the path is a URL
-                    if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
-                        $imageContent = file_get_contents($imagePath); 
-                        $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
-            
-                        $hashName = Str::random(40) . '.' . $extension;
-                        $storagePath = 'public/images/' . $hashName;
-            
-                        Storage::put($storagePath, $imageContent); 
-            
-                        ItemImage::create([
-                            'item_id'    => $item->item_id,
-                            'image_path' => $storagePath,
-                        ]);
-                    }
+        foreach ($urls as $url) {
+            $url = trim($url);
+
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                Log::warning("Invalid URL skipped: {$url}");
+                continue;
+            }
+
+            try {
+                $response = $this->client->get($url);
+
+                if ($response->getStatusCode() === 200) {
+                    $imageContent = $response->getBody()->getContents();
+
+                    $contentType = $response->getHeaderLine('Content-Type');
+                    $extension = $this->getExtensionFromContentType($contentType) ?: 'jpg';
+
+                    $hashName = Str::random(40) . '.' . $extension;
+                    $storagePath = 'public/images/' . $hashName;
+
+                    Storage::put($storagePath, $imageContent);
+
+                    ItemImage::create([
+                        'item_id'    => $itemId,
+                        'image_path' => $storagePath,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
+            } catch (RequestException $e) {
+                Log::error("Failed to download image from {$url}: " . $e->getMessage());
+            } catch (Exception $e) {
+                Log::error("Error processing image URL {$url}: " . $e->getMessage());
             }
         }
+    }
+
+    protected function getExtensionFromContentType($contentType)
+    {
+        $mappings = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+        ];
+
+        return $mappings[$contentType] ?? null;
     }
 }

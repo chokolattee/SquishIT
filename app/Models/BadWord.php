@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Shipping extends Model
+class BadWord extends Model
 {
     use HasFactory;
 
-    protected $table = 'shippings'; 
-    protected $primaryKey = 'id';
-    protected $fillable = ['region', 'rate'];
+    protected $table = 'bad_words';
+
+    protected $fillable = ['word'];
+
+    public $timestamps = false;
 }

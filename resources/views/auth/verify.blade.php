@@ -9,11 +9,7 @@
                     <i class="bi bi-envelope-heart"></i> {{ __('Verify Your Plushie Account') }} <i class="bi bi-envelope-heart"></i>
                 </div>
 
-                <div class="card-body" style="padding: 2rem 1.5rem;">
-                    <div class="text-center mb-4">
-                        <img src="https://via.placeholder.com/120" alt="Cute Bear" class="img-fluid" style="max-width: 120px; border-radius: 50%; border: 3px dashed #FFB6C1;">
-                    </div>
-                    
+                <div class="card-body" style="padding: 2rem 1.5rem;">                    
                     @if (session('resent'))
                         <div class="alert" role="alert" style="background-color: #E8F8EE; color: #2E856E; border: 2px dashed #A3E4C1; border-radius: 15px; padding: 1rem;">
                             <i class="bi bi-check-circle-fill me-2"></i>{{ __('A fresh verification link has been sent to your email address.') }}
@@ -29,15 +25,9 @@
                         {{ __('If you did not receive the email') }},
                         <form class="d-inline" method="POST" action="{{ route('verification.resend') }}">
                             @csrf
-                            <button type="submit" class="btn btn-link p-0 m-0 align-baseline" style="color: #FF80AA; font-weight: bold; text-decoration: underline;">{{ __('click here for a new magic link') }}</button>.
+                            <button type="submit" class="btn btn-link p-0 m-0 align-baseline" style="color: #FF80AA; font-weight: bold; text-decoration: underline;">{{ __('click here for a new verification link') }}</button>.
                         </form>
                     </div>
-                </div>
-                
-                <div class="card-footer text-center" style="background-color: #FFE4EE; border-top: 2px dashed #FFB6C1; padding: 1rem;">
-                    <a href="{{ route('home') }}" class="btn" style="background-color: #FF80AA; color: white; border-radius: 20px; padding: 0.6rem 1.2rem; font-weight: bold; box-shadow: 0 4px 8px rgba(255, 182, 193, 0.5);">
-                        <i class="bi bi-house-heart"></i> {{ __('Back to Homepage') }}
-                    </a>
                 </div>
             </div>
         </div>

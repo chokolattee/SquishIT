@@ -31,14 +31,14 @@ class ReviewsDataTable extends DataTable
             ->addColumn('action', function ($row) {
                 if ($row->deleted_at) {
                     return '
-                        <form method="POST" action="' . route('reviews.restore', $row->review_id) . '" style="display:inline-block;">
+                        <form method="POST" action="' . route('reviews.restore', $row->id) . '" style="display:inline-block;">
                             ' . csrf_field() . '
                             <button type="submit" class="btn btn-sm btn-warning">Restore</button>
                         </form>
                     ';
                 } else {
                     return '
-                        <form method="POST" action="' . route('reviews.destroy', $row->review_id) . '" style="display:inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this review?\');">
+                        <form method="POST" action="' . route('reviews.destroy', $row->id) . '" style="display:inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this review?\');">
                             ' . csrf_field() . method_field('DELETE') . '
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
@@ -51,11 +51,11 @@ class ReviewsDataTable extends DataTable
             ->filterColumn('item', function ($query, $keyword) {
                 $query->where('i.item_name', 'like', "%{$keyword}%");
             })
-            ->filterColumn('customer', function ($query, $keyword) {
+            ->filterColumn('customers', function ($query, $keyword) {
                 $query->whereRaw("LOWER(CONCAT(c.fname, ' ', c.lname)) like ?", ["%" . strtolower($keyword) . "%"]);
             })
             ->rawColumns(['action', 'images'])
-            ->setRowId('review_id');
+            ->setRowId('id');
     }
 
     /**
@@ -64,12 +64,12 @@ class ReviewsDataTable extends DataTable
     public function query()
     {
         $reviews = DB::table('reviews as r')
-            ->leftJoin('customer as c', 'r.customer_id', '=', 'c.customer_id')
-            ->leftJoin('item as i', 'r.item_id', '=', 'i.item_id')
-            ->leftJoin('review_images as ri', 'r.review_id', '=', 'ri.review_id')
+            ->leftJoin('customers as c', 'r.customer_id', '=', 'c.id')
+            ->leftJoin('items as i', 'r.item_id', '=', 'i.id')
+            ->leftJoin('review_images as ri', 'r.id', '=', 'ri.id')
             ->select(
-                'r.review_id',
-                'r.orderinfo_id',
+                'r.id',
+                'r.order_id',
                 'r.customer_id',
                 'r.item_id',
                 'r.rating',
@@ -80,8 +80,8 @@ class ReviewsDataTable extends DataTable
                 'i.item_name as item'
             )
             ->groupBy(
-                'r.review_id',
-                'r.orderinfo_id',
+                'r.id',
+                'r.order_id',
                 'r.customer_id',
                 'r.item_id',
                 'r.rating',
@@ -136,8 +136,8 @@ class ReviewsDataTable extends DataTable
                 ->addClass('text-center')
                 ->title('Actions'),
 
-            Column::make('review_id')->title('Review ID'),
-            Column::make('orderinfo_id')->title('Order ID'),
+            Column::make('id')->title('Review ID'),
+            Column::make('order_id')->title('Order ID'),
             Column::make('customer')->title('Customer Name')->name('customer'),
             Column::make('item')->title('Item Name')->name('item'),
             Column::make('rating')->title('Rating'),

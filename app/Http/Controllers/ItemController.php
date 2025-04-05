@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Http\Request;
 use App\Models\Item;
 use Illuminate\Support\Facades\DB;
@@ -26,15 +25,14 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\ItemImage;
 use App\Models\ReviewImage;
 
-
 class ItemController extends Controller
 {
     public function index()
     {
-        $items = DB::table('item')
-            ->join('stock', 'item.item_id', '=', 'stock.item_id')
-            ->join('category', 'item.category_id', '=', 'category.category_id')
-            ->select('item.*', 'stock.quantity', 'category.description as category_description')
+        $items = DB::table('items')
+            ->join('item_stock', 'items.id', '=', 'item_stock.item_id')
+            ->join('categories', 'items.category_id', '=', 'categories.id')
+            ->select('items.*', 'item_stock.quantity', 'categories.description as category_description')
             ->get();
 
         $images = DB::table('item_images')->get()->groupBy('item_id');
@@ -42,23 +40,17 @@ class ItemController extends Controller
         return view('item.index', compact('items', 'images'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('item.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $rules = [
             'description' => 'required|min:4',
             'images.*' => 'required|mimes:jpeg,png,jpg|max:2048',
-            'category_id' => 'required|exists:category,category_id',
+            'category_id' => 'required|exists:categories,id',
             'qty' => 'required|integer',
             'item_name' => 'required|string|min:4',
             'cost_price' => 'required|numeric|min:0',
@@ -73,18 +65,16 @@ class ItemController extends Controller
                 ->withInput();
         }
 
-        $categoryId = $request->category_id;
-
         $item = Item::create([
             'item_name' => trim($request->item_name),
             'description' => trim($request->description),
             'cost_price' => $request->cost_price,
             'sell_price' => $request->sell_price,
-            'category_id' => $categoryId
+            'category_id' => $request->category_id
         ]);
 
         Stock::create([
-            'item_id' => $item->item_id,
+            'item_id' => $item->id,
             'quantity' => $request->qty
         ]);
 
@@ -97,69 +87,60 @@ class ItemController extends Controller
                 );
 
                 ItemImage::create([
-                    'item_id' => $item->item_id,
+                    'item_id' => $item->id,
                     'image_path' => $path,
                 ]);
             }
         }
 
-        // dd($request->all());
-
         return redirect()->route('admin.items')->with('success', 'Item added successfully!');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
-        $item = Item::find($id);
-        $item = DB::table('item')
-            ->join('category', 'item.category_id', '=', 'category.category_id')
-            ->where('item.item_id', $id)
-            ->select('item.*', 'category.description as category')
+        $item = DB::table('items')
+            ->join('categories', 'items.category_id', '=', 'categories.id')
+            ->where('items.id', $id)
+            ->select('items.*', 'categories.description as category')
             ->first();
-            
+
         $images = DB::table('item_images')
             ->where('item_id', $id)
+            ->whereNull('deleted_at')
             ->get();
-    
+
         $reviews = DB::table('reviews')
-            ->join('customer', 'reviews.customer_id', '=', 'customer.customer_id')
+            ->join('customers', 'reviews.customer_id', '=', 'customers.id')
+            ->join('users as u', 'customers.user_id', '=', 'u.id')
             ->where('reviews.item_id', $id)
-            ->select('reviews.*', DB::raw("CONCAT(customer.fname, ' ', customer.lname) as customer_name"))
+            ->whereNull('reviews.deleted_at')
+            ->select('reviews.*', 'u.profile_image', DB::raw("CONCAT(customers.fname, ' ', customers.lname) as customer_name"))
             ->latest()
             ->get();
-    
+
+        $averageRating = $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 0;
+
         $reviewMedia = DB::table('review_images')
-            ->whereIn('review_id', $reviews->pluck('review_id'))
+            ->whereIn('review_id', $reviews->pluck('id'))
+            ->whereNull('deleted_at')
             ->get()
             ->groupBy('review_id');
-    
-        return view('item.show', compact('item', 'images', 'reviews', 'reviewMedia'));
+
+        return view('item.show', compact('item', 'images', 'reviews', 'reviewMedia', 'averageRating'));
     }
 
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit($id)
     {
-        // $item = Item::find($id);
-        // $stock = Stock::find($id);
-        $item = DB::table('item')
-            ->join('stock', 'item.item_id', '=', 'stock.item_id')
-            ->select('item.*', 'stock.quantity as stock_qty') 
-            ->where('item.item_id', $id)
+        $item = DB::table('items')
+            ->join('item_stock', 'items.id', '=', 'item_stock.item_id')
+            ->select('items.*', 'item_stock.quantity as stock_quantity')
+            ->where('items.id', $id)
             ->first();
-        // dd($item);
-        // return view('item.edit', compact('item', 'stock'));
+
         return view('item.edit', compact('item'));
     }
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+
+    public function update(Request $request, $id)
     {
         $item = Item::find($id);
         $stock = Stock::where('item_id', $id)->first();
@@ -171,7 +152,7 @@ class ItemController extends Controller
         $rules = [
             'description' => 'required|min:4',
             'images.*' => 'nullable|mimes:jpeg,png,jpg|max:2048',
-            'category_id' => 'required|exists:category,category_id',
+            'category_id' => 'required|exists:categories,id',
             'qty' => 'required|integer|min:0',
             'item_name' => 'required|string|min:4',
             'cost_price' => 'required|numeric|min:0',
@@ -186,14 +167,12 @@ class ItemController extends Controller
                 ->withInput();
         }
 
-        $categoryId = $request->category_id;
-
         $item->update([
             'item_name' => trim($request->item_name),
             'description' => trim($request->description),
             'cost_price' => $request->cost_price,
             'sell_price' => $request->sell_price,
-            'category_id' => $categoryId
+            'category_id' => $request->category_id
         ]);
 
         $stock->update([
@@ -201,11 +180,17 @@ class ItemController extends Controller
         ]);
 
         if ($request->hasFile('images')) {
+            $oldImages = ItemImage::where('item_id', $id)->get();
+            foreach ($oldImages as $oldImage) {
+                Storage::delete($oldImage->image_path);
+                $oldImage->delete();
+            }
+
             foreach ($request->file('images') as $image) {
                 $path = $image->store('public/images');
-                \App\Models\ItemImage::create([
-                    'item_id' => $item->item_id,
-                    'image_path' => $path
+                ItemImage::create([
+                    'item_id' => $item->id,
+                    'image_path' => $path,
                 ]);
             }
         }
@@ -213,10 +198,7 @@ class ItemController extends Controller
         return redirect()->route('admin.items')->with('success', 'Item updated successfully!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy($id)
     {
         $item = Item::find($id);
 
@@ -225,7 +207,6 @@ class ItemController extends Controller
         }
 
         $item->images()->delete();
-
         $item->delete();
 
         return redirect()->route('admin.items')->with('success', 'Item deleted successfully!');
@@ -233,14 +214,13 @@ class ItemController extends Controller
 
     public function restore($id)
     {
-        $item = Item::onlyTrashed()->where('item_id', $id)->first();
+        $item = Item::onlyTrashed()->where('id', $id)->first();
 
         if (!$item) {
             return redirect()->back()->with('error', 'Item not found in trash.');
         }
 
         $item->restore();
-
         $item->images()->onlyTrashed()->restore();
 
         return redirect()->route('admin.items')->with('success', 'Item restored successfully!');
@@ -248,7 +228,6 @@ class ItemController extends Controller
 
     public function import()
     {
-
         Excel::import(
             new ItemStockImport,
             request()
@@ -260,72 +239,74 @@ class ItemController extends Controller
                         ->getClientOriginalName()
                 )
         );
-        return redirect()->back()->with('success', 'Excel file Imported Successfully');
+
+        return redirect()->back()->with('success', 'Excel file imported successfully!');
     }
 
     public function getItems(Request $request)
     {
-        $query = DB::table('item')
-            ->join('stock', 'item.item_id', '=', 'stock.item_id')
-            ->join('category', 'item.category_id', '=', 'category.category_id')
-            ->whereNull('item.deleted_at')
-            ->select('item.*', 'stock.quantity', 'category.description as category_description');
+        $query = DB::table('items')
+            ->join('item_stock', 'items.id', '=', 'item_stock.item_id')
+            ->join('categories', 'items.category_id', '=', 'categories.id')
+            ->whereNull('items.deleted_at')
+            ->select('items.*', 'item_stock.quantity', 'categories.description as category_description');
 
         if ($request->filled('category_id')) {
-            $query->where('item.category_id', $request->category_id);
+            $query->where('items.category_id', $request->category_id);
         }
 
         if ($request->filled('min_price')) {
-            $query->where('item.sell_price', '>=', $request->min_price);
+            $query->where('items.sell_price', '>=', $request->min_price);
         }
 
         if ($request->filled('max_price')) {
-            $query->where('item.sell_price', '<=', $request->max_price);
+            $query->where('items.sell_price', '<=', $request->max_price);
         }
 
         $items = $query->get();
 
-        $images = DB::table('item_images')->get()->groupBy('item_id');
+        $images = DB::table('item_images')
+            ->whereNull('deleted_at')
+            ->get()
+            ->groupBy('item_id');
 
         $reviews = DB::table('reviews')
-            ->join('customer', 'reviews.customer_id', '=', 'customer.customer_id')
+            ->join('customers', 'reviews.customer_id', '=', 'customers.id')
             ->select(
                 'reviews.*',
-                DB::raw("CONCAT(customer.fname, ' ', customer.lname) as customer_name")
+                DB::raw("CONCAT(customers.fname, ' ', customers.lname) as customer_name")
             )
             ->get()
             ->groupBy('item_id');
 
         $reviewMedia = DB::table('review_images')->get()->groupBy('review_id');
 
-        $categories = DB::table('category')->get();
+        $categories = DB::table('categories')->get();
 
         return view('shop.index', compact('items', 'images', 'reviews', 'reviewMedia', 'categories'));
     }
 
-    public function __construct()
-    {
-        $this->middleware('auth')->only('addToCart');
-        $this->middleware('auth')->only('getCart');
-    }
-
-
     public function addToCart($id)
     {
-
         $item = Item::find($id);
 
         if (!$item) {
-            return redirect('/')->with('error', 'Item not found');
+            return redirect('/')->with('error', 'Item not found.');
         }
 
-        $oldCart = Session::get('cart', new Cart(null)); // Ensure cart exists
+        $stock = Stock::where('item_id', $id)->first();
+
+        if (!$stock || $stock->quantity <= 0) {
+            return redirect()->back()->with('error', 'Item is out of stock.');
+        }
+
+        $oldCart = Session::get('cart', new Cart(null));
         $cart = new Cart($oldCart);
 
         $cart->add($item, $id);
         Session::put('cart', $cart);
 
-        return redirect()->back()->with('success', 'Item added to cart');
+        return redirect()->back()->with('success', 'Item added to cart.');
     }
 
     public function getCart(Request $request)
@@ -337,7 +318,7 @@ class ItemController extends Controller
         $rate = 0;
 
         if ($request->has('shipping_id')) {
-            $shipping = Shipping::find($request->shipping_id);
+            $shipping = Shipping::find($request->id);
             $rate = $shipping->rate;
         }
 
@@ -417,11 +398,11 @@ class ItemController extends Controller
 
             $order = new Order();
             $order->date_placed = now();
-            $order->status = 'Pending';
-            $order->customer_id = $customer->customer_id;
+            $order->status_id = 1;
+            $order->customer_id = $customer->id;
 
             $rules = [
-                'shipping_id' => 'required|exists:shipping,shipping_id',
+                'shipping_id' => 'required|exists:shippings,id',
             ];
             $validator = Validator::make($request->all(), $rules);
 
@@ -438,12 +419,14 @@ class ItemController extends Controller
 
 
             foreach ($cart->items as $items) {
-                $id = $items['item']['item_id'];
+                $id = $items['item']['id'];
 
-                DB::table('orderline')->insert([
+                DB::table('order_item')->insert([
                     'item_id' => $id,
-                    'orderinfo_id' => $order->orderinfo_id,
-                    'quantity' => $items['qty']
+                    'order_id' => $order->id,
+                    'quantity' => $items['qty'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $stock = Stock::find($id);

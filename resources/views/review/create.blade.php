@@ -3,17 +3,17 @@
 @section('content')
 <div class="plushie-container">
     <div class="review-header-main">
-        <img src="/api/placeholder/80/80" alt="Plushie icon" class="plushie-icon"/>
         <h2>Share Your Plushie Experience</h2>
-        <p class="review-subtitle">Order #{{ $order->orderinfo_id }}</p>
+        <p class="review-subtitle">Order #{{ $order->id }}</p>
     </div>
 
-    @foreach($items as $item)
-    <div class="review-card">
-        <form action="{{ route('reviews.store') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <input type="hidden" name="item_id" value="{{ $item->item_id }}">
-            <input type="hidden" name="orderinfo_id" value="{{ $order->orderinfo_id }}">
+    <form action="{{ route('reviews.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        <input type="hidden" name="order_id" value="{{ $order->id }}">
+        
+        @foreach($items as $index => $item)
+        <div class="review-card">
+            <input type="hidden" name="items[{{ $index }}][item_id]" value="{{ $item->id }}">
             
             <div class="form-group item-name">
                 <label class="plushie-label">Your Plushie Friend</label>
@@ -22,20 +22,20 @@
 
             @if($item->images->count())
             <div class="plushie-carousel-container">
-                <div id="carouselItem{{ $item->item_id }}" class="carousel slide plushie-carousel" data-bs-ride="carousel">
+                <div id="carouselItem{{ $item->id }}" class="carousel slide plushie-carousel" data-bs-ride="carousel">
                     <div class="carousel-inner rounded">
-                        @foreach($item->images as $index => $img)
-                        <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                        @foreach($item->images as $imgIndex => $img)
+                        <div class="carousel-item {{ $imgIndex === 0 ? 'active' : '' }}">
                             <img src="{{ asset('storage/' . str_replace('public/', '', $img)) }}" class="d-block w-100" alt="Plushie Image">
                         </div>
                         @endforeach
                     </div>
 
                     @if($item->images->count() > 1)
-                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselItem{{ $item->item_id }}" data-bs-slide="prev">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselItem{{ $item->id }}" data-bs-slide="prev">
                         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#carouselItem{{ $item->item_id }}" data-bs-slide="next">
+                    <button class="carousel-control-next" type="button" data-bs-target="#carouselItem{{ $item->id }}" data-bs-slide="next">
                         <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     </button>
                     @endif
@@ -48,8 +48,8 @@
                 <div class="star-rating-container">
                     <div class="star-rating">
                         @for($i = 5; $i >= 1; $i--)
-                        <input type="radio" name="rating" id="star{{ $item->item_id }}_{{ $i }}" value="{{ $i }}" required>
-                        <label for="star{{ $item->item_id }}_{{ $i }}">&#9733;</label>
+                        <input type="radio" name="items[{{ $index }}][rating]" id="star{{ $item->id }}_{{ $i }}" value="{{ $i }}" required>
+                        <label for="star{{ $item->id }}_{{ $i }}">&#9733;</label>
                         @endfor
                     </div>
                 </div>
@@ -57,23 +57,23 @@
 
             <div class="form-group">
                 <label class="plushie-label">Tell Us Your Story</label>
-                <textarea name="review_text" class="plushie-textarea" rows="4" placeholder="Share your adventures with your plushie friend..."></textarea>
+                <textarea name="items[{{ $index }}][review_text]" class="plushie-textarea" rows="4" placeholder="Share your adventures with your plushie friend..."></textarea>
             </div>
 
             <div class="form-group">
                 <label class="plushie-label">Share Cute Photos</label>
                 <div class="file-upload-wrapper">
-                    <label for="media-upload-{{ $item->item_id }}" class="custom-file-upload">
+                    <label for="media-upload-{{ $item->id }}" class="custom-file-upload">
                         <i class="upload-icon">📷</i> Choose Files
                     </label>
-                    <input id="media-upload-{{ $item->item_id }}" type="file" name="media_files[]" multiple accept="image/*,video/*">
+                    <input id="media-upload-{{ $item->id }}" type="file" name="items[{{ $index }}][media_files][]" multiple accept="image/*,video/*">
                 </div>
             </div>
-
-            <button type="submit" class="plushie-button">Submit Your Review</button>
-        </form>
-    </div>
-    @endforeach
+        </div>
+        @endforeach
+        
+        <button type="submit" class="plushie-button">Submit All Reviews</button>
+    </form>
 </div>
 
 <style>

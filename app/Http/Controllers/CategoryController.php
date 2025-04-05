@@ -15,13 +15,13 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|unique:categories',
+            'description' => 'required|string|unique:categories,description',
         ]);
-        
+    
         $category = new Category();
-        $category->name = $request->name;
+        $category->description = $request->description;
         $category->save();
-        
+    
         return redirect()->route('admin.categories')->with('success', 'Category created successfully.');
     }
 
@@ -33,11 +33,11 @@ class CategoryController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|unique:categories,name,' . $id,
+            'description' => 'required|string|unique:categories,description',
         ]);
         
         $category = Category::findOrFail($id);
-        $category->name = $request->name;
+        $category->description = $request->description;
         $category->save();
         
         return redirect()->route('admin.categories')->with('success', 'Category updated successfully.');

@@ -35,7 +35,7 @@
                             <!-- Profile Image -->
                             <div class="mb-4 text-center">
                                 <div class="position-relative d-inline-block">
-                                    <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Profile Image" 
+                                    <img src="{{ asset('storage/' . $user->profile_image) }}" alt="Profile Image"
                                         class="rounded-circle mb-3 border border-3 border-pastel-pink shadow" width="150" height="150">
                                     <div class="upload-overlay">
                                         <label for="profile_image" class="btn btn-sm btn-pastel-pink rounded-circle position-absolute bottom-0 end-0">
@@ -51,10 +51,10 @@
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label text-primary fw-bold">Title</label>
                                     <select class="form-select border-pastel-blue rounded-pill" name="title">
-                                        <option value="Mr" {{ old('title', $customer->title) == 'Mr' ? 'selected' : '' }}>Mr</option>
-                                        <option value="Mrs" {{ old('title', $customer->title) == 'Mrs' ? 'selected' : '' }}>Mrs</option>
-                                        <option value="Ms" {{ old('title', $customer->title) == 'Ms' ? 'selected' : '' }}>Ms</option>
-                                        <option value="Dr" {{ old('title', $customer->title) == 'Dr' ? 'selected' : '' }}>Dr</option>
+                                        <option value="Mr." {{ old('title', $customer->title) == 'Mr.' ? 'selected' : '' }}>Mr.</option>
+                                        <option value="Mrs." {{ old('title', $customer->title) == 'Mrs.' ? 'selected' : '' }}>Mrs.</option>
+                                        <option value="Ms." {{ old('title', $customer->title) == 'Ms.' ? 'selected' : '' }}>Ms.</option>
+                                        <option value="Mx." {{ old('title', $customer->title) == 'Mx.' ? 'selected' : '' }}>Mx.</option>
                                     </select>
                                 </div>
 
@@ -168,76 +168,77 @@
     .bg-pastel-pink {
         background-color: #FFD1DC !important;
     }
-    
+
     .bg-pastel-blue {
         background-color: #D1E8FF !important;
     }
-    
+
     .bg-pastel-purple {
         background-color: #E0C1F4 !important;
     }
-    
+
     .bg-pastel-green {
         background-color: #D1FFD6 !important;
     }
-    
+
     .bg-soft-beige {
         background-color: #FFF9F0 !important;
     }
-    
+
     .text-primary {
         color: #7B5EA7 !important;
     }
-    
+
     .btn-pastel-blue {
         background-color: #D1E8FF;
         border-color: #B8D9FF;
         color: #4A6FA5;
     }
-    
+
     .btn-pastel-purple {
         background-color: #E0C1F4;
         border-color: #D1A7F0;
         color: #7B5EA7;
     }
-    
+
     .btn-pastel-green {
         background-color: #D1FFD6;
         border-color: #B8F0BF;
         color: #4A8C59;
     }
-    
+
     .btn-pastel-pink {
         background-color: #FFD1DC;
         border-color: #FFB8C9;
         color: #A54A6F;
     }
-    
+
     .border-pastel-blue {
         border-color: #B8D9FF !important;
     }
-    
+
     .border-pastel-purple {
         border-color: #D1A7F0 !important;
     }
-    
+
     .border-pastel-pink {
         border-color: #FFB8C9 !important;
     }
-    
+
     .rounded-4 {
         border-radius: 1rem !important;
     }
-    
+
     .card {
         transition: all 0.3s ease;
     }
-    
-    .form-control:focus, .form-select:focus {
+
+    .form-control:focus,
+    .form-select:focus {
         box-shadow: 0 0 0 0.25rem rgba(209, 167, 240, 0.25);
         border-color: #D1A7F0;
     }
-    
+
     .upload-overlay {
         position: relative;
     }
@@ -249,7 +250,7 @@
         const showSecurity = document.getElementById("showSecurity");
         const profileSection = document.getElementById("profileSection");
         const securitySection = document.getElementById("securitySection");
-        
+
         showProfile.addEventListener("click", function() {
             profileSection.style.display = "block";
             securitySection.style.display = "none";
@@ -258,7 +259,7 @@
             showSecurity.classList.remove('btn-primary');
             showSecurity.classList.add('btn-pastel-purple');
         });
-        
+
         showSecurity.addEventListener("click", function() {
             securitySection.style.display = "block";
             profileSection.style.display = "none";
@@ -267,7 +268,7 @@
             showProfile.classList.remove('btn-primary');
             showProfile.classList.add('btn-pastel-blue');
         });
-        
+
         document.getElementById('profile_image').addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 var reader = new FileReader();

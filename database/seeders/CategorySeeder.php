@@ -15,12 +15,12 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('category')->insert([
-            ['category_id' => 1, 'description' => 'Squishmallows'],
-            ['category_id' => 2, 'description' => 'Keychain Plushies'],
-            ['category_id' => 3, 'description' => 'Mini Plushies'],
-            ['category_id' => 4, 'description' => 'Giant Plushies'],
-            ['category_id' => 5, 'description' => 'Pillow Plushies'],
+        DB::table('categories')->insert([
+            ['id' => 1, 'description' => 'Squishmallows'],
+            ['id' => 2, 'description' => 'Keychain Plushies'],
+            ['id' => 3, 'description' => 'Mini Plushies'],
+            ['id' => 4, 'description' => 'Giant Plushies'],
+            ['id' => 5, 'description' => 'Pillow Plushies'],
         ]);
     }
 }

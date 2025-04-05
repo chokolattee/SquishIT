@@ -22,33 +22,47 @@ class OrderUpdate extends Mailable
     public $grandTotal;
     protected $pdfContent;
 
-    public function __construct($order, $items, $customer, $grandTotal)
+    /**
+     * Create a new message instance.
+     *
+     * @param $order
+     * @param $items
+     * @param $customer
+     * @param $grandTotal
+     */
+    public function __construct($order, $items, $customer, $grandTotal = null)
     {
         $this->order = $order;
         $this->items = $items;
         $this->customer = $customer;
-        $this->orderStatus = $order->status ?? 'N/A';
-        $this->grandTotal = $grandTotal;
+        
+        $this->orderStatus = $order->order_status;
 
         if ($grandTotal === null) {
-            $subtotal = $items->sum(function($item) {
-                return $item->total_quantity * $item->sell_price;
+            $subtotal = $items->sum(function ($item) {
+                return $item->quantity * $item->sell_price;
             });
-            
+
             $shippingRate = $items->isNotEmpty() ? $items[0]->shipping_rate : 0;
             $this->grandTotal = $subtotal + $shippingRate;
         } else {
             $this->grandTotal = $grandTotal;
         }
 
-        // Generate PDF from Blade view
         $this->pdfContent = Pdf::loadView('email.order_status', [
             'order' => $this->order,
             'items' => $this->items,
             'customer' => $this->customer,
+            'orderStatus' => $this->orderStatus, 
+            'grandTotal' => $this->grandTotal,
         ])->output();
     }
 
+    /**
+     * Get the message envelope.
+     *
+     * @return Envelope
+     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -57,6 +71,11 @@ class OrderUpdate extends Mailable
         );
     }
 
+    /**
+     * Get the message content definition.
+     *
+     * @return Content
+     */
     public function content(): Content
     {
         return new Content(
@@ -65,11 +84,17 @@ class OrderUpdate extends Mailable
                 'order' => $this->order,
                 'items' => $this->items,
                 'customer' => $this->customer,
-                'status' => $this->orderStatus,
+                'orderStatus' => $this->orderStatus, 
+                'grandTotal' => $this->grandTotal,
             ]
         );
     }
 
+    /**
+     * Get the attachments for the message.
+     *
+     * @return array
+     */
     public function attachments(): array
     {
         return [

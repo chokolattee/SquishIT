@@ -83,7 +83,7 @@ use App\Models\Category;
                     <!-- Category -->
                     <div class="mb-3">
                         {!! Form::label('category_id', 'Category', ['class' => 'form-label fw-bold', 'style' => 'font-family: "Comic Sans MS", "Nunito", sans-serif; color: #FF69B4;']) !!}
-                        {!! Form::select('category_id', ['' => 'Choose a plushie category'] + Category::pluck('description', 'category_id')->toArray(), null, [
+                        {!! Form::select('category_id', ['' => 'Choose a plushie category'] + Category::pluck('description', 'id')->toArray(), null, [
                             'class' => 'form-control',
                             'required' => true,
                             'style' => 'border: 2px solid #FFB6C1; border-radius: 20px;'

@@ -10,12 +10,12 @@ class Review extends Model
 {
     use HasFactory;
     use SoftDeletes;
-
-    protected $primaryKey = 'review_id';
+    protected $table = 'reviews';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'customer_id',
-        'orderinfo_id',
+        'order_id',
         'item_id',
         'rating',
         'review_text',
@@ -23,16 +23,16 @@ class Review extends Model
 
     public function customer()
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }
 
     public function item()
     {
-        return $this->belongsTo(Item::class, 'item_id');
+        return $this->belongsTo(Item::class, 'item_id', 'id');
     }
 
     public function images()
     {
-        return $this->hasMany(ReviewImage::class, 'review_id');
+        return $this->hasMany(ReviewImage::class, 'review_id', 'id');
     }
 }

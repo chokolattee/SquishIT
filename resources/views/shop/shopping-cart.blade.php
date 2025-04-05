@@ -40,7 +40,7 @@
 
                                 <!-- COLUMN 2: Quantity + Remove Button -->
                                 <div class="col-md-6 d-flex justify-content-end align-items-center flex-wrap">
-                                    <form action="{{ route('updateCart', $product['item']['item_id']) }}" method="POST" class="d-flex align-items-center">
+                                    <form action="{{ route('updateCart', $product['item']['id']) }}" method="POST" class="d-flex align-items-center">
                                         @csrf
                                         <div class="input-group me-2" style="max-width: 140px;">
                                             <!-- Decrease Button -->
@@ -64,7 +64,7 @@
                                     </form>
 
                                     <!-- Remove Button -->
-                                    <a href="{{ route('removeItem', $product['item']['item_id']) }}" class="btn ms-2 mt-2 mt-sm-0" style="background-color: #FFC0CB; color: #9E4244; border-radius: 20px; padding: 0.5rem 1rem; font-weight: bold; box-shadow: 0 2px 5px rgba(255, 182, 193, 0.5);">
+                                    <a href="{{ route('removeItem', $product['item']['id']) }}" class="btn ms-2 mt-2 mt-sm-0" style="background-color: #FFC0CB; color: #9E4244; border-radius: 20px; padding: 0.5rem 1rem; font-weight: bold; box-shadow: 0 2px 5px rgba(255, 182, 193, 0.5);">
                                         <i class="bi bi-x-circle"></i> Remove
                                     </a>
                                 </div>
@@ -131,7 +131,7 @@
                                         <select class="form-control" style="border: 2px solid #FFB6C1; border-radius: 15px; background-color: #FFF5F7; padding: 0.5rem 1rem; color: #D25A7E;" name="shipping_id" id="shippingSelect" onchange="updateTotalPrice()">
                                             <option value="">Select Shipping Method</option>
                                             @foreach ($shippingOptions as $option)
-                                            <option value="{{ $option->shipping_id }}" data-rate="{{ $option->rate }}" {{ old('shipping_id') == $option->shipping_id ? 'selected' : '' }}>
+                                            <option value="{{ $option->id }}" data-rate="{{ $option->rate }}" {{ old('id') == $option->id ? 'selected' : '' }}>
                                                 {{ $option->region }} - ₱{{ $option->rate }}
                                             </option>
                                             @endforeach

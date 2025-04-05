@@ -12,8 +12,9 @@ class Category extends Model
 {
     use HasFactory;
     use SoftDeletes;
-    protected $table = 'category';
-    protected $primaryKey = 'category_id';
-    // public $timestamps = false;
-    protected $fillable = ['description'];
+    protected $table = 'categories';
+    protected $primaryKey = 'id';
+    public $timestamps = false;
+    protected $fillable = ['description',  'created_at', 
+    'updated_at' ];
 }

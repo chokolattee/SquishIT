@@ -13,15 +13,35 @@ use App\Models\Item;
 
 class ReviewController extends Controller
 {
+    private function filterBadWords($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+
+        $badWords = DB::table('bad_words')->pluck('word')->toArray();
+        
+        if (empty($badWords)) {
+            return $text;
+        }
+
+        foreach ($badWords as $word) {
+            $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
+            $replacement = str_repeat('*', strlen($word));
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        return $text;
+    }
     public function index()
     {
-        $customer_id = auth()->user()->customer->customer_id;
+        $customer_id = auth()->user()->customer->id;
 
-        $reviews = Review::withTrashed() 
-        ->with(['item', 'images']) 
-        ->where('customer_id', $customer_id)
-        ->latest()
-        ->get();
+        $reviews = Review::withTrashed()
+            ->with(['item', 'images'])
+            ->where('customer_id', $customer_id)
+            ->latest()
+            ->get();
 
         return view('review.index', compact('reviews'));
     }
@@ -29,26 +49,24 @@ class ReviewController extends Controller
 
     public function addReview($orderId)
     {
-        $order = DB::table('orderinfo')->where('orderinfo_id', $orderId)->first();
+        $order = DB::table('orders')->where('id', $orderId)->first();
 
         if (!$order) {
             return redirect()->back()->with('error', 'Order not found.');
         }
 
-        $items = DB::table('orderline')
-            ->join('item', 'orderline.item_id', '=', 'item.item_id')
-            ->where('orderline.orderinfo_id', $orderId)
-            ->select('item.item_id', 'item.item_name')
+        $items = DB::table('order_item')
+            ->join('items', 'order_item.item_id', '=', 'items.id')
+            ->where('order_item.order_id', $orderId)
+            ->select('items.id', 'items.item_name')
             ->get();
 
         foreach ($items as $item) {
             $item->images = DB::table('item_images')
-                ->where('item_id', $item->item_id)
+                ->where('item_id', $item->id)
+                ->whereNull('deleted_at')
                 ->pluck('image_path');
         }
-
-
-
 
         return view('review.create', compact('order', 'items'));
     }
@@ -56,11 +74,12 @@ class ReviewController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'item_id' => 'required|exists:item,item_id',
-            'orderinfo_id' => 'required|exists:orderinfo,orderinfo_id',
-            'rating' => 'required|integer|min:1|max:5',
-            'review_text' => 'nullable|string',
-            'media_files.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,mp4,webm,mov|max:20480',
+            'order_id' => 'required|exists:orders,id',
+            'items' => 'required|array',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.rating' => 'required|integer|min:1|max:5',
+            'items.*.review_text' => 'nullable|string',
+            'items.*.media_files.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,mp4,webm,mov|max:20480',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -71,46 +90,56 @@ class ReviewController extends Controller
                 ->withInput();
         }
 
-        $customer_id = auth()->user()->customer->customer_id;
+        $customer_id = auth()->user()->customer->id;
+        $order_id = $request->order_id;
 
-        $review = Review::create([
-            'customer_id'   => $customer_id,
-            'orderinfo_id'  => $request->orderinfo_id,
-            'item_id'       => $request->item_id,
-            'rating'        => $request->rating,
-            'review_text'   => trim($request->review_text),
-        ]);
 
-        if ($request->hasFile('media_files')) {
-            foreach ($request->file('media_files') as $file) {
-                $path = Storage::putFileAs(
-                    'public/review_media',
-                    $file,
-                    $file->hashName()
-                );
+        foreach ($request->items as $itemData) {
+            $filteredReviewText = isset($itemData['review_text']) 
+                ? $this->filterBadWords(trim($itemData['review_text'])) 
+                : null;
 
-                ReviewImage::create([
-                    'review_id'  => $review->review_id,
-                    'item_id'    => $request->item_id,
-                    'image_path' => $path,
-                ]);
+            $itemData['review_text'] = $filteredReviewText;
+
+            $review = Review::create([
+                'customer_id'   => $customer_id,
+                'order_id'  => $order_id,
+                'item_id'       => $itemData['item_id'],
+                'rating'        => $itemData['rating'],
+                'review_text'   => isset($itemData['review_text']) ? trim($itemData['review_text']) : null,
+            ]);
+
+            if (isset($itemData['media_files']) && is_array($itemData['media_files'])) {
+                foreach ($itemData['media_files'] as $file) {
+                    $path = Storage::putFileAs(
+                        'public/review_media',
+                        $file,
+                        $file->hashName()
+                    );
+
+                    ReviewImage::create([
+                        'review_id'  => $review->id,
+                        'item_id'    => $itemData['item_id'],
+                        'image_path' => $path,
+                    ]);
+                }
             }
         }
 
-        return redirect()->route('reviews.index')->with('success', 'Review submitted successfully!');
+        return redirect()->route('reviews.index')->with('success', 'All reviews submitted successfully!');
     }
 
     public function edit(string $id)
     {
         $review = DB::table('reviews')
-            ->join('item', 'reviews.item_id', '=', 'item.item_id')
-            ->where('reviews.review_id', $id)
+            ->join('items', 'reviews.item_id', '=', 'items.id')
+            ->where('reviews.id', $id)
             ->select(
-                'reviews.review_id',
+                'reviews.id',
                 'reviews.item_id',
                 'reviews.rating',
                 'reviews.review_text',
-                'item.item_name'
+                'items.item_name'
             )
             ->first();
 
@@ -128,24 +157,23 @@ class ReviewController extends Controller
 
         $review = Review::findOrFail($id);
         $review->rating = $request->rating;
-        $review->review_text = $request->review_text;
+        $review->review_text = $this->filterBadWords($request->review_text);
         $review->save();
 
         if ($request->hasFile('media_files')) {
-            $oldMedia = ReviewImage::where('review_id', $review->review_id)->get();
+            $oldMedia = ReviewImage::where('review_id', $review->id)->get();
             foreach ($oldMedia as $media) {
                 if (Storage::exists($media->image_path)) {
                     Storage::delete($media->image_path);
                 }
             }
-    
-            // Delete old media records
-            ReviewImage::withTrashed()->where('review_id', $review->review_id)->forceDelete();
-    
+
+            ReviewImage::where('review_id', $review->id)->delete();
+
             foreach ($request->file('media_files') as $file) {
                 $path = $file->store('public/review_media');
                 ReviewImage::create([
-                    'review_id' => $review->review_id,
+                    'review_id' => $review->id,
                     'image_path' => $path,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -169,12 +197,12 @@ class ReviewController extends Controller
 
         $redirectRoute = auth()->user()->role === 'Admin' ? 'admin.reviews' : 'reviews.index';
 
-    return redirect()->route($redirectRoute)->with('success', 'Review deleted successfully!');
+        return redirect()->route($redirectRoute)->with('success', 'Review deleted successfully!');
     }
 
     public function restore($id)
     {
-        $review = Review::onlyTrashed()->where('review_id', $id)->first();
+        $review = Review::onlyTrashed()->where('id', $id)->first();
 
         if (!$review) {
             return redirect()->back()->with('error', 'Review not found in trash.');
@@ -185,6 +213,6 @@ class ReviewController extends Controller
 
         $redirectRoute = auth()->user()->role === 'Admin' ? 'admin.reviews' : 'reviews.index';
 
-    return redirect()->route($redirectRoute)->with('success', 'Review restored successfully!');
+        return redirect()->route($redirectRoute)->with('success', 'Review restored successfully!');
     }
 }

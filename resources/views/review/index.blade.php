@@ -34,7 +34,7 @@
                                                 <div class="d-flex align-items-center">
                                                     <i class="bi bi-gift-fill me-2"></i>
                                                     <span class="badge rounded-pill px-3 py-2 bg-white text-primary shadow-sm">
-                                                        Order #{{ $review->orderinfo_id }}
+                                                        Order #{{ $review->order_id }}
                                                     </span>
                                                 </div>
                                                 <div class="review-date">
@@ -70,7 +70,7 @@
 
                                             {{-- Media Carousel --}}
                                             @if($review->images->count())
-                                                <div id="carouselReview{{ $review->review_id }}" class="carousel slide mb-4" data-bs-ride="carousel">
+                                                <div id="carouselReview{{ $review->id }}" class="carousel slide mb-4" data-bs-ride="carousel">
                                                     <div class="carousel-inner rounded-4 shadow-sm">
                                                         @foreach($review->images as $index => $media)
                                                             <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
@@ -87,16 +87,16 @@
                                                     </div>
 
                                                     @if($review->images->count() > 1)
-                                                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselReview{{ $review->review_id }}" data-bs-slide="prev">
+                                                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselReview{{ $review->id }}" data-bs-slide="prev">
                                                             <span class="carousel-control-prev-icon"></span>
                                                         </button>
-                                                        <button class="carousel-control-next" type="button" data-bs-target="#carouselReview{{ $review->review_id }}" data-bs-slide="next">
+                                                        <button class="carousel-control-next" type="button" data-bs-target="#carouselReview{{ $review->id }}" data-bs-slide="next">
                                                             <span class="carousel-control-next-icon"></span>
                                                         </button>
                                                         
                                                         <div class="carousel-indicators position-relative mt-2">
                                                             @foreach($review->images as $index => $media)
-                                                                <button type="button" data-bs-target="#carouselReview{{ $review->review_id }}" 
+                                                                <button type="button" data-bs-target="#carouselReview{{ $review->id }}" 
                                                                     data-bs-slide-to="{{ $index }}" 
                                                                     class="{{ $index === 0 ? 'active' : '' }}"
                                                                     style="width: 10px; height: 10px; border-radius: 50%; background-color: #ff6b6b;">
@@ -109,18 +109,18 @@
 
                                             <div class="d-flex justify-content-end gap-2 mt-3">
                                                 @if($review->trashed())
-                                                    <form action="{{ route('reviews.restore', $review->review_id) }}" method="POST">
+                                                    <form action="{{ route('reviews.restore', $review->id) }}" method="POST">
                                                         @csrf
                                                         <button type="submit" class="btn btn-outline-warning rounded-pill btn-sm px-3">
                                                             <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
                                                         </button>
                                                     </form>
                                                 @else
-                                                    <a href="{{ route('reviews.edit', $review->review_id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-3">
+                                                    <a href="{{ route('reviews.edit', $review->id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-3">
                                                         <i class="bi bi-pencil-fill me-1"></i> Edit
                                                     </a>
 
-                                                    <form action="{{ route('reviews.destroy', $review->review_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this review?');">
+                                                    <form action="{{ route('reviews.destroy', $review->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this review?');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-outline-danger rounded-pill btn-sm px-3">

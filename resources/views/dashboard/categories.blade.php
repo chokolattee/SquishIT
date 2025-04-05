@@ -24,7 +24,7 @@
         <h4 style="font-family: 'Comic Sans MS', 'Nunito', sans-serif; color: #FF69B4;">
             <i class="fas fa-folder-open me-2"></i> Plushie Groups
         </h4>
-        <a href="{{ route('category.create') }}" class="btn" 
+        <a href="{{ route('categories.create') }}" class="btn" 
             style="font-family: 'Comic Sans MS', 'Nunito', sans-serif; font-weight: 600; background-color: #FF69B4; color: white; border-radius: 20px;">
             <i class="fas fa-plus-circle me-2"></i> Add New Category
         </a>

@@ -26,7 +26,7 @@ class OrdersDataTable extends DataTable
         return datatables()
             ->query($query)
             ->addColumn('action', function ($row) {
-                $actionBtn = '<a href="' . route('admin.orderDetails', $row->orderinfo_id) . '" class="btn details btn-primary">Details</a>';
+                $actionBtn = '<a href="' . route('admin.orderDetails', $row->id) . '" class="btn details btn-primary">Details</a>';
                 return $actionBtn;
             })
             ->filterColumn('lname', function ($query, $keyword) {
@@ -39,10 +39,10 @@ class OrdersDataTable extends DataTable
                 $query->where('c.addressline', 'like', "%{$keyword}%");
             })
             ->filterColumn('status', function ($query, $keyword) {
-                $query->where('o.status', 'like', "%{$keyword}%");
+                $query->where('s.status', 'like', "%{$keyword}%");
             })
             ->rawColumns(['action'])
-            ->setRowId('orderinfo_id');
+            ->setRowId('id');
     }
 
     /**
@@ -50,33 +50,34 @@ class OrdersDataTable extends DataTable
      */
     public function query()
     {
-        $orders = DB::table('customer as c')
-    ->join('orderinfo as o', 'o.customer_id', '=', 'c.customer_id')
-    ->join('orderline as ol', 'o.orderinfo_id', '=', 'ol.orderinfo_id')
-    ->join('item as i', 'ol.item_id', '=', 'i.item_id')
-    ->join('shipping as s', 'o.shipping_id', '=', 's.shipping_id')
+        $orders = DB::table('customers as c')
+    ->join('orders as o', 'o.customer_id', '=', 'c.id')
+    ->join('order_item as oi', 'o.id', '=', 'oi.order_id')
+    ->join('items as i', 'oi.item_id', '=', 'i.id')
+    ->join('shippings as sh', 'o.shipping_id', '=', 'sh.id')
+    ->join('statuses as s', 'o.status_id', '=', 's.id')
     ->select(
-        'o.orderinfo_id',
+        'o.id',
         'c.fname',
         'c.lname',
         'c.addressline',
         'o.date_placed',
         'o.date_shipped',
         'o.date_delivered',
-        'o.status',
-        's.rate',
-        DB::raw("SUM((ol.quantity * i.sell_price)+s.rate) as total")
+        's.status',
+        'sh.rate',
+        DB::raw("SUM((oi.quantity * i.sell_price)+sh.rate) as total")
     )
     ->groupBy(
-        'o.orderinfo_id',
+        'o.id',
         'c.fname',
         'c.lname',
         'c.addressline',
         'o.date_placed',
         'o.date_shipped',   
         'o.date_delivered',
-        'o.status',
-        's.rate'
+        's.status',
+        'sh.rate'
     );
 
 
@@ -124,14 +125,14 @@ class OrdersDataTable extends DataTable
                 ->printable(false)
                 ->width(60)
                 ->addClass('text-center'),
-                ['data' => 'orderinfo_id', 'name' => 'o.orderinfo_id', 'title' => 'Order ID'],
+                ['data' => 'id', 'name' => 'o.id', 'title' => 'Order ID'],
                 ['data' => 'lname', 'name' => 'c.lname', 'title' => 'Last Name'],
                 ['data' => 'fname', 'name' => 'c.fname', 'title' => 'First Name'],
                 ['data' => 'addressline', 'name' => 'c.addressline', 'title' => 'Address'],
                 ['data' => 'date_placed', 'name' => 'o.date_placed', 'title' => 'Date Ordered'],
                 ['data' => 'date_shipped', 'name' => 'o.date_shipped', 'title' => 'Date Shipped'],
                 ['data' => 'date_delivered', 'name' => 'o.date_delivered', 'title' => 'Date Delivered'],
-                ['data' => 'status', 'name' => 'o.status', 'title' => 'status'],
+                ['data' => 'status', 'name' => 's.status', 'title' => 'Status'],
                 Column::make('total')->searchable(false)
         ];
     }
