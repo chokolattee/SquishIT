@@ -13,5 +13,5 @@ class BadWord extends Model
 
     protected $fillable = ['word'];
 
-    public $timestamps = false;
+    // public $timestamps = false;
 }

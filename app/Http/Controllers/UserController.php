@@ -19,7 +19,7 @@ class UserController extends Controller
         // dd($request->role, $id);
         User::where('id', $id)
             ->update(['role' => $request->role]);
-            return redirect()->back()->with('success', 'Role updated successfully.');
+        return redirect()->back()->with('success', 'Role updated successfully.');
     }
 
     public function update_status(Request $request, $id)
@@ -28,13 +28,46 @@ class UserController extends Controller
         $request->validate([
             'status' => 'required|in:Active,Deactivated',
         ]);
-    
+
         User::where('id', $id)->update(['status' => $request->status]);
-    
+
         return redirect()->back()->with('success', 'Status updated successfully.');
     }
 
+    public function profileDeactivate(Request $request)
+    {
+        $user = User::find(Auth::id());
 
+        $request->validate([
+            'current_password' => 'required'
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return redirect()->back()->with('error', 'Current password is incorrect.');
+        }
+
+        $hasPendingOrders = DB::table('orders as o')
+            ->join('statuses as s', 'o.status_id', '=', 's.id')
+            ->join('customers as c', 'o.customer_id', '=', 'c.id')
+            ->where('c.user_id', $user->id)
+            ->whereIn('s.status', ['Pending', 'Shipped'])
+            ->exists();
+
+        if ($hasPendingOrders) {
+            return redirect()->back()->with('error', 'Cannot deactivate with pending/shipped orders.');
+        }
+
+
+        $user->status = 'Deactivated';
+        $user->updated_at = now();
+        $user->save();
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with(['success', 'Account deactivated successfully.']);
+    }
     public function logout()
     {
         Auth::logout();
@@ -51,23 +84,25 @@ class UserController extends Controller
     {
         $user = Auth::user();
         $layout = $user->role === 'Admin' ? 'layouts.admin-header' : 'layouts.header';
-    
+
         $customer = DB::table('customers')->where('user_id', $user->id)->first();
 
-          
+
         return view('users.edit', compact('user', 'customer', 'layout'));
     }
-    
-    
+
+
     public function updateProfile(Request $request)
     {
 
         $user = User::find(Auth::id());
         $customer = Customer::where('user_id', $user->id)->firstOrFail();
 
-    
+
         $request->validate([
-            'title' => 'required', 'string', 'max:10',
+            'title' => 'required',
+            'string',
+            'max:10',
             'fname' => 'required|string|max:255',
             'lname' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -75,19 +110,18 @@ class UserController extends Controller
             'phone' => 'required|string|max:15',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
-    
-        // Concatenate first name and last name for User
+
         $fullName = trim($request->fname) . ' ' . trim($request->lname);
-    
+
         if ($request->hasFile('profile_image')) {
             $path = $request->file('profile_image')->store('public/images');
             $user->profile_image = str_replace('public/', '', $path);
         }
-    
+
         // Update User model
         $user->name = $fullName;
         $user->save();
-    
+
         // Update Customer model
         $customer->update([
             'title' => trim($request->title),
@@ -97,7 +131,7 @@ class UserController extends Controller
             'town' => trim($request->town),
             'phone' => trim($request->phone)
         ]);
-    
+
         return redirect()->back()->with('success', 'Profile updated successfully!');
     }
 
@@ -118,16 +152,14 @@ class UserController extends Controller
         if ($request->filled('email')) {
             $user->email = $request->email;
         }
-    
+
         // Update password only if provided
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
-    
+
         $user->save();
-    
+
         return redirect()->back()->with('success', 'Security settings updated successfully.');
     }
-
-    
 }

@@ -15,6 +15,12 @@
                     </div>
                     @endif
 
+                    @if (session('error'))
+                    <div class="alert alert-danger rounded-pill border-2 border-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                    </div>
+                    @endif
+
                     <!-- Toggle Buttons -->
                     <div class="d-flex justify-content-center mb-4 gap-3">
                         <button class="btn btn-pastel-blue rounded-pill px-4 py-2 fw-bold" id="showProfile">
@@ -156,6 +162,33 @@
                                 </button>
                             </div>
                         </form>
+
+                        <!-- Deactivate Account Section -->
+                        <div class="mt-5 pt-4 border-top border-2">
+                            <h4 class="text-center mb-4 text-danger">Deactivate Account</h4>
+                            <p class="text-center text-muted mb-4">Please note that account deactivation is not possible if you have pending or shipped orders.</p>
+                            
+                            <form action="{{ route('profile.deactivate') }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate your account? This action cannot be undone.');">
+                                @csrf
+                                @method('PUT')
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-danger fw-bold">Enter Your Password to Confirm</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text border-danger rounded-start-pill bg-danger text-white">
+                                            <i class="fas fa-key"></i>
+                                        </span>
+                                        <input type="password" class="form-control border-danger rounded-end-pill" name="current_password" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-danger rounded-pill px-5 py-2 fw-bold">
+                                        <i class="fas fa-user-times me-2"></i>Deactivate My Account
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -86,6 +86,7 @@ Route::post('/reviews/restore/{id}', [ReviewController::class, 'restore'])->name
 Route::get('/profile/edit', [UserController::class, 'edit'])->name('profile.edit')->middleware('auth');
 Route::put('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update')->middleware('auth');
 Route::put('/profile/security', [UserController::class, 'updateSecurity'])->name('profile.security')->middleware('auth');
+Route::put('/profile/deactivate', [UserController::class, 'profileDeactivate'])->name('profile.deactivate')->middleware('auth');
 Route::get('/logout', [UserController::class, 'logout'])->name('user.logout');
 
 Route::get('/dashboard',[DashboardController::class, 'index'])->name('dashboard.index');

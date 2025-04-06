@@ -11,7 +11,7 @@ class Status extends Model
 
     protected $table = 'statuses';
     protected $primaryKey = 'id';
-    public $timestamps = false;
+    // public $timestamps = false;
     protected $fillable = ['status'];
 
 }

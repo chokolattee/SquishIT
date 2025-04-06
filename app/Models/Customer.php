@@ -12,8 +12,6 @@ class Customer extends Model implements Searchable
     use HasFactory;
     protected $table = 'customers';
     protected $primaryKey = 'id';
-    public $timestamps = false;
-
     protected $fillable = [
         'user_id', 
         'title',

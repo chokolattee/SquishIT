@@ -11,7 +11,7 @@ class Stock extends Model
     protected $table = 'item_stock'; // Define the table name
     protected $primaryKey = 'item_id';
     protected $fillable = ['item_id', 'quantity'];
-    public $timestamps = false;
+    // public $timestamps = false;
 
     public function item()
     {
