@@ -247,16 +247,16 @@ class OrderController extends Controller
     public function cancel(Request $request, $orderId)
     {
         $order = DB::table('orders')
-            ->join('status', 'orders.status_id', '=', 'status.id')
+            ->join('statuses', 'orders.status_id', '=', 'statuses.id')
             ->where('orders.id', $orderId)
-            ->select('orders.*', 'status.status as order_status')
+            ->select('orders.*', 'statuses.status as order_status')
             ->first();
 
         if (!$order) {
             return redirect()->back()->with('error', 'Order not found.');
         }
 
-        $pendingStatusId = DB::table('status')->where('status', 'Pending')->value('id');
+        $pendingStatusId = DB::table('statuses')->where('status', 'Pending')->value('id');
 
         if ($order->status_id !== $pendingStatusId) {
             return redirect()->back()->with('error', 'Only pending orders can be cancelled.');
@@ -277,7 +277,7 @@ class OrderController extends Controller
                 }
             }
 
-            $cancelledStatusId = DB::table('status')->where('status', 'Cancelled')->value('id');
+            $cancelledStatusId = DB::table('statuses')->where('status', 'Cancelled')->value('id');
             DB::table('orders')
                 ->where('id', $orderId)
                 ->update(['status_id' => $cancelledStatusId]);

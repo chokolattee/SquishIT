@@ -2,12 +2,7 @@
 
 @section('body')
 <div class="container py-5">
-    @if (session('success'))
-    <div class="alert alert-success alert-dismissible fade show rounded-pill" role="alert">
-        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    @endif
+@include('layouts.flash-messages')
 
     <div class="text-center mb-5">
         <h1 class="display-4 fw-bold" style="color: #FF6B9E;">Plushie <span style="color: #8A6FDF;">Search Results</span></h1>

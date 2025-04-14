@@ -15,7 +15,7 @@ use Collective\Html\FormFacade as Form;
                     </h4>
                 </div>
                 <div class="card-body">
-                {!! Form::open(['route' => 'category.store', 'method' => 'POST']) !!}
+                {!! Form::open(['route' => 'categories.store', 'method' => 'POST']) !!}
                     <!-- Category Description -->
                     <div class="mb-4">
                         {!! Form::label('description', 'Category Name', ['class' => 'form-label fw-bold', 'style' => 'font-family: "Comic Sans MS", "Nunito", sans-serif; color: #FF69B4;']) !!}

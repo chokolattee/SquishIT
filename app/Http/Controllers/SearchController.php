@@ -11,18 +11,25 @@ class SearchController extends Controller
 {
     public function search(Request $request)
     {
-        // dd($request->term);
         $searchResults = (new Search())
-            ->registerModel(Item::class, 'item_name')
+            ->registerModel(Item::class, function ($modelSearchAspect) {
+                $modelSearchAspect
+                    ->addSearchableAttribute('item_name')
+                    ->whereNull('items.deleted_at') // Exclude soft-deleted items
+                    ->where(function($query) {
+                        $query->WhereHas('category', function($q) {
+                                  $q->whereNull('deleted_at'); // Exclude items with deleted categories
+                              });
+                    });
+            })
             ->search(trim($request->term));
-            
-            foreach ($searchResults as $result) {
-                if ($result->searchable instanceof Item) {
-                    $result->searchable->load('firstImage');
-                }
+    
+        foreach ($searchResults as $result) {
+            if ($result->searchable instanceof Item) {
+                $result->searchable->load(['firstImage', 'category']);
             }
-
-            // dd($searchResults);
-            return view('search', compact('searchResults'));
+        }
+    
+        return view('search', compact('searchResults'));
     }
 }

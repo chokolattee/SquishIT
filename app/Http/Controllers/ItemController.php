@@ -249,6 +249,7 @@ class ItemController extends Controller
             ->join('item_stock', 'items.id', '=', 'item_stock.item_id')
             ->join('categories', 'items.category_id', '=', 'categories.id')
             ->whereNull('items.deleted_at')
+            ->whereNull('categories.deleted_at')
             ->select('items.*', 'item_stock.quantity', 'categories.description as category_description');
 
         if ($request->filled('category_id')) {

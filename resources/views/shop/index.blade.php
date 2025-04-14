@@ -1,3 +1,7 @@
+@php
+use App\Models\Category;
+@endphp
+
 @extends('layouts.base')
 
 @section('title', 'SquishIT - Plushie Paradise')
@@ -326,11 +330,11 @@
                     <label for="category_id" class="form-label">Filter by Category</label>
                     <select name="category_id" id="category_id" class="form-select">
                         <option value="">-- All Categories --</option>
-                        @foreach($categories as $category)
-                        <option value="{{ $category->id }}" {{ request('id') == $category->id ? 'selected' : '' }}>
-                            {{ $category->description }}
-                        </option>
-                        @endforeach
+                        @foreach(Category::whereNull('deleted_at')->get() as $category)
+        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+            {{ $category->description }}
+        </option>
+    @endforeach
                     </select>
                 </div>
 

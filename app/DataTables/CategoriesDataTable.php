@@ -27,7 +27,7 @@ class CategoriesDataTable extends DataTable
             ->addColumn('action', function ($row) {
                 if ($row->deleted_at) {
                     return '
-                        <form method="POST" action="' . route('categories.restore', $row->id) . '" style="display:inline-block;">
+                        <form method="GET" action="' . route('categories.restore', $row->id) . '" style="display:inline-block;">
                             ' . csrf_field() . '
                             <button type="submit" class="btn btn-sm btn-warning">Restore</button>
                         </form>

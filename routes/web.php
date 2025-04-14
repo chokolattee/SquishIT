@@ -29,7 +29,7 @@ use App\Models\Category;
 
 Route::get('/', [ItemController::class, 'getItems'])->name('getItems');
 Route::get('add-to-cart/{id}', [ItemController::class, 'addToCart'])
-    ->name('addToCart')  // Add the name here
+    ->name('addToCart') 
     ->middleware('auth');
 
 Route::get('/shopping-cart', [ItemController::class, 'getCart'])->name('getCart')->middleware('auth');;

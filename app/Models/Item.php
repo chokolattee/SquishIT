@@ -42,4 +42,10 @@ class Item extends Model implements Searchable
     {
         return $this->hasOne(Stock::class, 'item_id');
     }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 }
+
